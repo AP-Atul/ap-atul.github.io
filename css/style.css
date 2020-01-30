@@ -16,29 +16,34 @@ body {
     color: lightcoral;
 }
 
-.my-nav {
-    background-color: transparent;
-}
-
 .bg-black{
     background-color: black;
 }
 
-.bg-image {
-    max-width: 100%;
-    height: auto;
-    filter: blur(05px);
-
-    background-position: center;
+.hero-section {
+    height: 800px;
+    padding-top: 335px;
 }
 
-.text-title {
-    font-size: 6vw;
+.hero-text h1 {
+	font-size: 72px;
+    color: #ffffff;
+	font-weight: 600;
+	margin-top: 30px;
+    margin-bottom: 18px;
     letter-spacing: 10px;
 }
+.hero-text p {
+	color: #ffffff;
+	margin-bottom: 44px;
+}
 
-.text-secondary-title {
-    font-size: 1.8vw;
+.set-bg {
+    background-image: url("../images/background.jpg");
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: top center;
+    backdrop-filter: blur(1px);
 }
 
 .section-title {
