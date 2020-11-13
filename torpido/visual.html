@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.9.1" />
-<title>lib.visual API documentation</title>
+<title>torpido.visual API documentation</title>
 <meta name="description" content="This file reads the video and gives ranking to frames
 that have motion in it, saves in the dictionary with frame numbers
 this dictionary is then saved …" />
@@ -21,7 +21,7 @@ this dictionary is then saved …" />
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>lib.visual</code></h1>
+<h1 class="title">Module <code>torpido.visual</code></h1>
 </header>
 <section id="section-intro">
 <p>This file reads the video and gives ranking to frames
@@ -37,17 +37,13 @@ that have motion in it, saves in the dictionary with frame numbers
 this dictionary is then saved in a joblib file defined in constants.py
 &#34;&#34;&#34;
 
-import os
 import time
 
 import cv2
 import numpy as np
-from joblib import dump
 
-from lib.util.cache import Cache
-from lib.util.constants import *
-from lib.util.logger import Log
-from lib.util.videoReader import VideoGet
+from torpido.config import *
+from torpido.video import VideoGet
 
 
 class Visual:
@@ -58,41 +54,42 @@ class Visual:
 
     Attributes
     ----------
-    motionRankPath : str
+    self.__motionRankPath : str
         file to store the motion rank
-    blurRankPath : str
+    self.__blurRankPath : str
         file to store the blur rank
-    blurThreshold : int
+    self.__blurThreshold : int
         threshold to rank the blur feature
-    motionThreshold : int
+    self.__motionThreshold : int
         threshold to rank the motion feature
-    fps : float
+    self.__fps : float
         input video fps
-    frameCount : int
+    self.__frameCount : int
         number of frames
-    motion : list
+    self.__motion : list
         list of the ranks for the motion feature
-    blur : list
+    self.__blur : list
         list of the ranks for the blur feature
-    cache : Cache
+    self.__cache : Cache
         cache object to store the data
-    videoGetter : VideoGet
+    self.__videoGetter : VideoGet
         video reader object to read the video and save it in thread
     &#34;&#34;&#34;
 
     def __init__(self):
-        self.motionRankPath = os.path.join(os.getcwd(), RANK_DIR, RANK_OUT_MOTION)
-        self.blurRankPath = os.path.join(os.getcwd(), RANK_DIR, RANK_OUT_BLUR)
-        self.blurThreshold = BLUR_THRESHOLD
-        self.motionThreshold = MOTION_THRESHOLD
-        self.fps = None
-        self.frameCount = None
-        self.motion = None
-        self.blur = None
-        self.cache = Cache()
-        self.videoGetter = None
+        cv2.setUseOptimized(True)
+        self.__motionRankPath = os.path.join(os.getcwd(), RANK_DIR, RANK_OUT_MOTION)
+        self.__blurRankPath = os.path.join(os.getcwd(), RANK_DIR, RANK_OUT_BLUR)
+        self.__blurThreshold = BLUR_THRESHOLD
+        self.__motionThreshold = MOTION_THRESHOLD
+        self.__fps = None
+        self.__frameCount = None
+        self.__motion = None
+        self.__blur = None
+        self.__cache = Cache()
+        self.__videoGetter = None
 
-    def detectBlur(self, image):
+    def __detectBlur(self, image):
         &#34;&#34;&#34;
         Laplacian take 2nd derivative of one channel of the image(gray scale)
         It highlights regions of an image containing rapid intensity changes, much like the Sobel and Scharr operators.
@@ -103,22 +100,10 @@ class Visual:
         image : array
             frame from the video file
         &#34;&#34;&#34;
-        # (h, w) = image.shape
-        # (cX, cY) = (int(w / 2.0), int(h / 2.0))
-        #
-        # fft = np.fft.fft2(image)
-        # fftShift = np.fft.fftshift(fft)
-        #
-        # fftShift[cY - size:cY + size, cX - size:cX + size] = 0
-        # fftShift = np.fft.ifftshift(fftShift)
-        # recon = np.fft.ifft2(fftShift)
-        #
-        # magnitude = 20 * np.log(np.abs(recon))
-        # mean = np.mean(magnitude)
-        # return mean &lt;= thresh
-        if cv2.Laplacian(image, cv2.CV_64F).var() &gt;= self.blurThreshold:
-            return RANK_BLUR
-        return 0
+        # if blur rank is 0 else RANK_BLUR
+        if cv2.Laplacian(image, cv2.CV_64F).var() &gt;= self.__blurThreshold:
+            return 0
+        return RANK_BLUR
 
     def startProcessing(self, inputFile, display=False):
         &#34;&#34;&#34;
@@ -138,23 +123,23 @@ class Visual:
             return
 
         # maintaining the motion and blur frames list
-        self.motion = list()
-        self.blur = list()
+        self.__motion = list()
+        self.__blur = list()
 
-        self.videoGetter = VideoGet(str(inputFile)).start()
-        myClip = self.videoGetter.stream
+        self.__videoGetter = VideoGet(str(inputFile)).start()
+        myClip = self.__videoGetter.stream
 
-        if self.videoGetter.Q.qsize() == 0:
+        if self.__videoGetter.getQueueSize() == 0:
             time.sleep(1)
             Log.d(f&#34;Waiting for the buffer to fill up.&#34;)
 
         fps = myClip.get(cv2.CAP_PROP_FPS)
         totalFrames = myClip.get(cv2.CAP_PROP_FRAME_COUNT)
 
-        self.fps = fps
-        self.frameCount = totalFrames
-        self.setVideoFps()
-        self.setVideoFrameCount()
+        self.__fps = fps
+        self.__frameCount = totalFrames
+        self.__setVideoFps()
+        self.__setVideoFrameCount()
 
         # printing some info
         Log.d(f&#34;Total count of video frames :: {totalFrames}&#34;)
@@ -164,11 +149,11 @@ class Visual:
         Log.i(f&#34;Video four cc :: {cv2.CAP_PROP_FOURCC}&#34;)
 
         count = 0
-        firstFrame = self.videoGetter.read()
+        firstFrame = self.__videoGetter.read()
         firstFrameProcessed = True
 
-        while self.videoGetter.more():
-            frame = self.videoGetter.read()
+        while self.__videoGetter.more():
+            frame = self.__videoGetter.read()
 
             if frame is None:
                 break
@@ -177,7 +162,7 @@ class Visual:
             count += 1
 
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            self.blur.append(self.detectBlur(frame))
+            self.__blur.append(self.__detectBlur(frame))
             frame = cv2.GaussianBlur(frame, (21, 21), 0)
 
             if firstFrameProcessed:
@@ -186,13 +171,13 @@ class Visual:
                 firstFrameProcessed = False
 
             frameDelta = cv2.absdiff(firstFrame, frame)
-            thresh = cv2.threshold(frameDelta, self.motionThreshold, 255, cv2.THRESH_BINARY)[1]
+            thresh = cv2.threshold(frameDelta, self.__motionThreshold, 255, cv2.THRESH_BINARY)[1]
 
-            threshSum = thresh.sum()
-            if threshSum &gt; 0:
-                self.motion.append(RANK_MOTION)
+            threshMax = np.max(thresh)
+            if threshMax &gt; 0:
+                self.__motion.append(RANK_MOTION)
             else:
-                self.motion.append(0)
+                self.__motion.append(0)
 
             if display:
                 cv2.imshow(&#34;Video Feed&#34;, original)
@@ -207,13 +192,13 @@ class Visual:
 
         # clearing memory
         myClip.release()
-        self.videoGetter.stop()
+        self.__videoGetter.stop()
         cv2.destroyAllWindows()
 
         # calling the normalization of ranking
-        self.timedRankingNormalize()
+        self.__timedRankingNormalize()
 
-    def timedRankingNormalize(self):
+    def __timedRankingNormalize(self):
         &#34;&#34;&#34;
         Since ranking is added to frames, since frames are duration * fps
         and audio frame system is different since frame are duration * rate
@@ -230,38 +215,38 @@ class Visual:
         &#34;&#34;&#34;
         motionNormalize = []
         blurNormalize = []
-        for i in range(0, int(self.frameCount), int(self.fps)):
-            if len(self.motion) &gt;= (i + int(self.fps)):
-                motionNormalize.append(np.mean(self.motion[i: i + int(self.fps)]))
-                blurNormalize.append(np.mean(self.blur[i: i + int(self.fps)]))
+        for i in range(0, int(self.__frameCount), int(self.__fps)):
+            if len(self.__motion) &gt;= (i + int(self.__fps)):
+                motionNormalize.append(np.mean(self.__motion[i: i + int(self.__fps)]))
+                blurNormalize.append(np.mean(self.__blur[i: i + int(self.__fps)]))
             else:
                 break
 
         # saving all processed stuffs
-        dump(motionNormalize, self.motionRankPath)
-        dump(blurNormalize, self.blurRankPath)
+        dump(motionNormalize, self.__motionRankPath)
+        dump(blurNormalize, self.__blurRankPath)
         Log.d(f&#34;Visual rank length {len(motionNormalize)}  {len(blurNormalize)}&#34;)
         Log.i(f&#34;Visual ranking saved .............&#34;)
 
-    def setVideoFps(self):
+    def __setVideoFps(self):
         &#34;&#34;&#34;
         Function to set the original video fps to cache
         &#34;&#34;&#34;
-        self.cache.writeDataToCache(CACHE_FPS, self.fps)
+        self.__cache.writeDataToCache(CACHE_FPS, self.__fps)
 
-    def setVideoFrameCount(self):
+    def __setVideoFrameCount(self):
         &#34;&#34;&#34;
         Function to set the original video frame count to cache
         &#34;&#34;&#34;
-        self.cache.writeDataToCache(CACHE_FRAME_COUNT, self.frameCount)
+        self.__cache.writeDataToCache(CACHE_FRAME_COUNT, self.__frameCount)
 
     def __del__(self):
         &#34;&#34;&#34;
         Clean ups
         &#34;&#34;&#34;
-        del self.cache
-        if self.videoGetter is not None:
-            del self.videoGetter
+        del self.__cache
+        if self.__videoGetter is not None:
+            del self.__videoGetter
 
         Log.d(&#34;Cleaning up.&#34;)</code></pre>
 </details>
@@ -275,7 +260,7 @@ class Visual:
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
 <dl>
-<dt id="lib.visual.Visual"><code class="flex name class">
+<dt id="torpido.visual.Visual"><code class="flex name class">
 <span>class <span class="ident">Visual</span></span>
 </code></dt>
 <dd>
@@ -283,28 +268,26 @@ class Visual:
 are used to calculate the rank. The ranks are per frame, so later the ranks are
 normalized to sec</p>
 <h2 id="attributes">Attributes</h2>
-<dl>
-<dt><strong><code>motionRankPath</code></strong> :&ensp;<code>str</code></dt>
-<dd>file to store the motion rank</dd>
-<dt><strong><code>blurRankPath</code></strong> :&ensp;<code>str</code></dt>
-<dd>file to store the blur rank</dd>
-<dt><strong><code>blurThreshold</code></strong> :&ensp;<code>int</code></dt>
-<dd>threshold to rank the blur feature</dd>
-<dt><strong><code>motionThreshold</code></strong> :&ensp;<code>int</code></dt>
-<dd>threshold to rank the motion feature</dd>
-<dt><strong><code>fps</code></strong> :&ensp;<code>float</code></dt>
-<dd>input video fps</dd>
-<dt><strong><code>frameCount</code></strong> :&ensp;<code>int</code></dt>
-<dd>number of frames</dd>
-<dt><strong><code>motion</code></strong> :&ensp;<code>list</code></dt>
-<dd>list of the ranks for the motion feature</dd>
-<dt><strong><code>blur</code></strong> :&ensp;<code>list</code></dt>
-<dd>list of the ranks for the blur feature</dd>
-<dt><strong><code>cache</code></strong> :&ensp;<code>Cache</code></dt>
-<dd>cache object to store the data</dd>
-<dt><strong><code>videoGetter</code></strong> :&ensp;<code>VideoGet</code></dt>
-<dd>video reader object to read the video and save it in thread</dd>
-</dl></div>
+<p>self.__motionRankPath : str
+file to store the motion rank
+self.__blurRankPath : str
+file to store the blur rank
+self.__blurThreshold : int
+threshold to rank the blur feature
+self.__motionThreshold : int
+threshold to rank the motion feature
+self.__fps : float
+input video fps
+self.__frameCount : int
+number of frames
+self.__motion : list
+list of the ranks for the motion feature
+self.__blur : list
+list of the ranks for the blur feature
+self.__cache : Cache
+cache object to store the data
+self.__videoGetter : VideoGet
+video reader object to read the video and save it in thread</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -317,41 +300,42 @@ normalized to sec</p>
 
     Attributes
     ----------
-    motionRankPath : str
+    self.__motionRankPath : str
         file to store the motion rank
-    blurRankPath : str
+    self.__blurRankPath : str
         file to store the blur rank
-    blurThreshold : int
+    self.__blurThreshold : int
         threshold to rank the blur feature
-    motionThreshold : int
+    self.__motionThreshold : int
         threshold to rank the motion feature
-    fps : float
+    self.__fps : float
         input video fps
-    frameCount : int
+    self.__frameCount : int
         number of frames
-    motion : list
+    self.__motion : list
         list of the ranks for the motion feature
-    blur : list
+    self.__blur : list
         list of the ranks for the blur feature
-    cache : Cache
+    self.__cache : Cache
         cache object to store the data
-    videoGetter : VideoGet
+    self.__videoGetter : VideoGet
         video reader object to read the video and save it in thread
     &#34;&#34;&#34;
 
     def __init__(self):
-        self.motionRankPath = os.path.join(os.getcwd(), RANK_DIR, RANK_OUT_MOTION)
-        self.blurRankPath = os.path.join(os.getcwd(), RANK_DIR, RANK_OUT_BLUR)
-        self.blurThreshold = BLUR_THRESHOLD
-        self.motionThreshold = MOTION_THRESHOLD
-        self.fps = None
-        self.frameCount = None
-        self.motion = None
-        self.blur = None
-        self.cache = Cache()
-        self.videoGetter = None
+        cv2.setUseOptimized(True)
+        self.__motionRankPath = os.path.join(os.getcwd(), RANK_DIR, RANK_OUT_MOTION)
+        self.__blurRankPath = os.path.join(os.getcwd(), RANK_DIR, RANK_OUT_BLUR)
+        self.__blurThreshold = BLUR_THRESHOLD
+        self.__motionThreshold = MOTION_THRESHOLD
+        self.__fps = None
+        self.__frameCount = None
+        self.__motion = None
+        self.__blur = None
+        self.__cache = Cache()
+        self.__videoGetter = None
 
-    def detectBlur(self, image):
+    def __detectBlur(self, image):
         &#34;&#34;&#34;
         Laplacian take 2nd derivative of one channel of the image(gray scale)
         It highlights regions of an image containing rapid intensity changes, much like the Sobel and Scharr operators.
@@ -362,22 +346,10 @@ normalized to sec</p>
         image : array
             frame from the video file
         &#34;&#34;&#34;
-        # (h, w) = image.shape
-        # (cX, cY) = (int(w / 2.0), int(h / 2.0))
-        #
-        # fft = np.fft.fft2(image)
-        # fftShift = np.fft.fftshift(fft)
-        #
-        # fftShift[cY - size:cY + size, cX - size:cX + size] = 0
-        # fftShift = np.fft.ifftshift(fftShift)
-        # recon = np.fft.ifft2(fftShift)
-        #
-        # magnitude = 20 * np.log(np.abs(recon))
-        # mean = np.mean(magnitude)
-        # return mean &lt;= thresh
-        if cv2.Laplacian(image, cv2.CV_64F).var() &gt;= self.blurThreshold:
-            return RANK_BLUR
-        return 0
+        # if blur rank is 0 else RANK_BLUR
+        if cv2.Laplacian(image, cv2.CV_64F).var() &gt;= self.__blurThreshold:
+            return 0
+        return RANK_BLUR
 
     def startProcessing(self, inputFile, display=False):
         &#34;&#34;&#34;
@@ -397,23 +369,23 @@ normalized to sec</p>
             return
 
         # maintaining the motion and blur frames list
-        self.motion = list()
-        self.blur = list()
+        self.__motion = list()
+        self.__blur = list()
 
-        self.videoGetter = VideoGet(str(inputFile)).start()
-        myClip = self.videoGetter.stream
+        self.__videoGetter = VideoGet(str(inputFile)).start()
+        myClip = self.__videoGetter.stream
 
-        if self.videoGetter.Q.qsize() == 0:
+        if self.__videoGetter.getQueueSize() == 0:
             time.sleep(1)
             Log.d(f&#34;Waiting for the buffer to fill up.&#34;)
 
         fps = myClip.get(cv2.CAP_PROP_FPS)
         totalFrames = myClip.get(cv2.CAP_PROP_FRAME_COUNT)
 
-        self.fps = fps
-        self.frameCount = totalFrames
-        self.setVideoFps()
-        self.setVideoFrameCount()
+        self.__fps = fps
+        self.__frameCount = totalFrames
+        self.__setVideoFps()
+        self.__setVideoFrameCount()
 
         # printing some info
         Log.d(f&#34;Total count of video frames :: {totalFrames}&#34;)
@@ -423,11 +395,11 @@ normalized to sec</p>
         Log.i(f&#34;Video four cc :: {cv2.CAP_PROP_FOURCC}&#34;)
 
         count = 0
-        firstFrame = self.videoGetter.read()
+        firstFrame = self.__videoGetter.read()
         firstFrameProcessed = True
 
-        while self.videoGetter.more():
-            frame = self.videoGetter.read()
+        while self.__videoGetter.more():
+            frame = self.__videoGetter.read()
 
             if frame is None:
                 break
@@ -436,7 +408,7 @@ normalized to sec</p>
             count += 1
 
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            self.blur.append(self.detectBlur(frame))
+            self.__blur.append(self.__detectBlur(frame))
             frame = cv2.GaussianBlur(frame, (21, 21), 0)
 
             if firstFrameProcessed:
@@ -445,13 +417,13 @@ normalized to sec</p>
                 firstFrameProcessed = False
 
             frameDelta = cv2.absdiff(firstFrame, frame)
-            thresh = cv2.threshold(frameDelta, self.motionThreshold, 255, cv2.THRESH_BINARY)[1]
+            thresh = cv2.threshold(frameDelta, self.__motionThreshold, 255, cv2.THRESH_BINARY)[1]
 
-            threshSum = thresh.sum()
-            if threshSum &gt; 0:
-                self.motion.append(RANK_MOTION)
+            threshMax = np.max(thresh)
+            if threshMax &gt; 0:
+                self.__motion.append(RANK_MOTION)
             else:
-                self.motion.append(0)
+                self.__motion.append(0)
 
             if display:
                 cv2.imshow(&#34;Video Feed&#34;, original)
@@ -466,13 +438,13 @@ normalized to sec</p>
 
         # clearing memory
         myClip.release()
-        self.videoGetter.stop()
+        self.__videoGetter.stop()
         cv2.destroyAllWindows()
 
         # calling the normalization of ranking
-        self.timedRankingNormalize()
+        self.__timedRankingNormalize()
 
-    def timedRankingNormalize(self):
+    def __timedRankingNormalize(self):
         &#34;&#34;&#34;
         Since ranking is added to frames, since frames are duration * fps
         and audio frame system is different since frame are duration * rate
@@ -489,121 +461,44 @@ normalized to sec</p>
         &#34;&#34;&#34;
         motionNormalize = []
         blurNormalize = []
-        for i in range(0, int(self.frameCount), int(self.fps)):
-            if len(self.motion) &gt;= (i + int(self.fps)):
-                motionNormalize.append(np.mean(self.motion[i: i + int(self.fps)]))
-                blurNormalize.append(np.mean(self.blur[i: i + int(self.fps)]))
+        for i in range(0, int(self.__frameCount), int(self.__fps)):
+            if len(self.__motion) &gt;= (i + int(self.__fps)):
+                motionNormalize.append(np.mean(self.__motion[i: i + int(self.__fps)]))
+                blurNormalize.append(np.mean(self.__blur[i: i + int(self.__fps)]))
             else:
                 break
 
         # saving all processed stuffs
-        dump(motionNormalize, self.motionRankPath)
-        dump(blurNormalize, self.blurRankPath)
+        dump(motionNormalize, self.__motionRankPath)
+        dump(blurNormalize, self.__blurRankPath)
         Log.d(f&#34;Visual rank length {len(motionNormalize)}  {len(blurNormalize)}&#34;)
         Log.i(f&#34;Visual ranking saved .............&#34;)
 
-    def setVideoFps(self):
+    def __setVideoFps(self):
         &#34;&#34;&#34;
         Function to set the original video fps to cache
         &#34;&#34;&#34;
-        self.cache.writeDataToCache(CACHE_FPS, self.fps)
+        self.__cache.writeDataToCache(CACHE_FPS, self.__fps)
 
-    def setVideoFrameCount(self):
+    def __setVideoFrameCount(self):
         &#34;&#34;&#34;
         Function to set the original video frame count to cache
         &#34;&#34;&#34;
-        self.cache.writeDataToCache(CACHE_FRAME_COUNT, self.frameCount)
+        self.__cache.writeDataToCache(CACHE_FRAME_COUNT, self.__frameCount)
 
     def __del__(self):
         &#34;&#34;&#34;
         Clean ups
         &#34;&#34;&#34;
-        del self.cache
-        if self.videoGetter is not None:
-            del self.videoGetter
+        del self.__cache
+        if self.__videoGetter is not None:
+            del self.__videoGetter
 
         Log.d(&#34;Cleaning up.&#34;)</code></pre>
 </details>
 <h3>Methods</h3>
 <dl>
-<dt id="lib.visual.Visual.detectBlur"><code class="name flex">
-<span>def <span class="ident">detectBlur</span></span>(<span>self, image)</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Laplacian take 2nd derivative of one channel of the image(gray scale)
-It highlights regions of an image containing rapid intensity changes, much like the Sobel and Scharr operators.
-And then calculates the variance (squared SD), then check if the variance satisfies the Threshold value/</p>
-<h2 id="parameters">Parameters</h2>
-<dl>
-<dt><strong><code>image</code></strong> :&ensp;<code>array</code></dt>
-<dd>frame from the video file</dd>
-</dl></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def detectBlur(self, image):
-    &#34;&#34;&#34;
-    Laplacian take 2nd derivative of one channel of the image(gray scale)
-    It highlights regions of an image containing rapid intensity changes, much like the Sobel and Scharr operators.
-    And then calculates the variance (squared SD), then check if the variance satisfies the Threshold value/
-
-    Parameters
-    ---------
-    image : array
-        frame from the video file
-    &#34;&#34;&#34;
-    # (h, w) = image.shape
-    # (cX, cY) = (int(w / 2.0), int(h / 2.0))
-    #
-    # fft = np.fft.fft2(image)
-    # fftShift = np.fft.fftshift(fft)
-    #
-    # fftShift[cY - size:cY + size, cX - size:cX + size] = 0
-    # fftShift = np.fft.ifftshift(fftShift)
-    # recon = np.fft.ifft2(fftShift)
-    #
-    # magnitude = 20 * np.log(np.abs(recon))
-    # mean = np.mean(magnitude)
-    # return mean &lt;= thresh
-    if cv2.Laplacian(image, cv2.CV_64F).var() &gt;= self.blurThreshold:
-        return RANK_BLUR
-    return 0</code></pre>
-</details>
-</dd>
-<dt id="lib.visual.Visual.setVideoFps"><code class="name flex">
-<span>def <span class="ident">setVideoFps</span></span>(<span>self)</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Function to set the original video fps to cache</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def setVideoFps(self):
-    &#34;&#34;&#34;
-    Function to set the original video fps to cache
-    &#34;&#34;&#34;
-    self.cache.writeDataToCache(CACHE_FPS, self.fps)</code></pre>
-</details>
-</dd>
-<dt id="lib.visual.Visual.setVideoFrameCount"><code class="name flex">
-<span>def <span class="ident">setVideoFrameCount</span></span>(<span>self)</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Function to set the original video frame count to cache</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def setVideoFrameCount(self):
-    &#34;&#34;&#34;
-    Function to set the original video frame count to cache
-    &#34;&#34;&#34;
-    self.cache.writeDataToCache(CACHE_FRAME_COUNT, self.frameCount)</code></pre>
-</details>
-</dd>
-<dt id="lib.visual.Visual.startProcessing"><code class="name flex">
+<dt id="torpido.visual.Visual.startProcessing"><code class="name flex">
 <span>def <span class="ident">startProcessing</span></span>(<span>self, inputFile, display=False)</span>
 </code></dt>
 <dd>
@@ -638,23 +533,23 @@ detected and based on that ranking is set</p>
         return
 
     # maintaining the motion and blur frames list
-    self.motion = list()
-    self.blur = list()
+    self.__motion = list()
+    self.__blur = list()
 
-    self.videoGetter = VideoGet(str(inputFile)).start()
-    myClip = self.videoGetter.stream
+    self.__videoGetter = VideoGet(str(inputFile)).start()
+    myClip = self.__videoGetter.stream
 
-    if self.videoGetter.Q.qsize() == 0:
+    if self.__videoGetter.getQueueSize() == 0:
         time.sleep(1)
         Log.d(f&#34;Waiting for the buffer to fill up.&#34;)
 
     fps = myClip.get(cv2.CAP_PROP_FPS)
     totalFrames = myClip.get(cv2.CAP_PROP_FRAME_COUNT)
 
-    self.fps = fps
-    self.frameCount = totalFrames
-    self.setVideoFps()
-    self.setVideoFrameCount()
+    self.__fps = fps
+    self.__frameCount = totalFrames
+    self.__setVideoFps()
+    self.__setVideoFrameCount()
 
     # printing some info
     Log.d(f&#34;Total count of video frames :: {totalFrames}&#34;)
@@ -664,11 +559,11 @@ detected and based on that ranking is set</p>
     Log.i(f&#34;Video four cc :: {cv2.CAP_PROP_FOURCC}&#34;)
 
     count = 0
-    firstFrame = self.videoGetter.read()
+    firstFrame = self.__videoGetter.read()
     firstFrameProcessed = True
 
-    while self.videoGetter.more():
-        frame = self.videoGetter.read()
+    while self.__videoGetter.more():
+        frame = self.__videoGetter.read()
 
         if frame is None:
             break
@@ -677,7 +572,7 @@ detected and based on that ranking is set</p>
         count += 1
 
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        self.blur.append(self.detectBlur(frame))
+        self.__blur.append(self.__detectBlur(frame))
         frame = cv2.GaussianBlur(frame, (21, 21), 0)
 
         if firstFrameProcessed:
@@ -686,13 +581,13 @@ detected and based on that ranking is set</p>
             firstFrameProcessed = False
 
         frameDelta = cv2.absdiff(firstFrame, frame)
-        thresh = cv2.threshold(frameDelta, self.motionThreshold, 255, cv2.THRESH_BINARY)[1]
+        thresh = cv2.threshold(frameDelta, self.__motionThreshold, 255, cv2.THRESH_BINARY)[1]
 
-        threshSum = thresh.sum()
-        if threshSum &gt; 0:
-            self.motion.append(RANK_MOTION)
+        threshMax = np.max(thresh)
+        if threshMax &gt; 0:
+            self.__motion.append(RANK_MOTION)
         else:
-            self.motion.append(0)
+            self.__motion.append(0)
 
         if display:
             cv2.imshow(&#34;Video Feed&#34;, original)
@@ -707,59 +602,11 @@ detected and based on that ranking is set</p>
 
     # clearing memory
     myClip.release()
-    self.videoGetter.stop()
+    self.__videoGetter.stop()
     cv2.destroyAllWindows()
 
     # calling the normalization of ranking
-    self.timedRankingNormalize()</code></pre>
-</details>
-</dd>
-<dt id="lib.visual.Visual.timedRankingNormalize"><code class="name flex">
-<span>def <span class="ident">timedRankingNormalize</span></span>(<span>self)</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Since ranking is added to frames, since frames are duration * fps
-and audio frame system is different since frame are duration * rate
-so we need to generalize the ranking system
-sol: ranking sec of the video and audio, for than taking mean of the
-frames to generate rank for video.</p>
-<p>Since ranking is 0 or 1, the mean will be different and we get more versatile
-results.</p>
-<p>We will read both the list and slice the video to get 1 sec of frames(1 * fps) and get
-mean/average as the rank for the 1 sec</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def timedRankingNormalize(self):
-    &#34;&#34;&#34;
-    Since ranking is added to frames, since frames are duration * fps
-    and audio frame system is different since frame are duration * rate
-    so we need to generalize the ranking system
-    sol: ranking sec of the video and audio, for than taking mean of the
-    frames to generate rank for video.
-
-    Since ranking is 0 or 1, the mean will be different and we get more versatile
-    results.
-
-    We will read both the list and slice the video to get 1 sec of frames(1 * fps) and get
-    mean/average as the rank for the 1 sec
-
-    &#34;&#34;&#34;
-    motionNormalize = []
-    blurNormalize = []
-    for i in range(0, int(self.frameCount), int(self.fps)):
-        if len(self.motion) &gt;= (i + int(self.fps)):
-            motionNormalize.append(np.mean(self.motion[i: i + int(self.fps)]))
-            blurNormalize.append(np.mean(self.blur[i: i + int(self.fps)]))
-        else:
-            break
-
-    # saving all processed stuffs
-    dump(motionNormalize, self.motionRankPath)
-    dump(blurNormalize, self.blurRankPath)
-    Log.d(f&#34;Visual rank length {len(motionNormalize)}  {len(blurNormalize)}&#34;)
-    Log.i(f&#34;Visual ranking saved .............&#34;)</code></pre>
+    self.__timedRankingNormalize()</code></pre>
 </details>
 </dd>
 </dl>
@@ -775,19 +622,15 @@ mean/average as the rank for the 1 sec</p></div>
 <ul id="index">
 <li><h3>Super-module</h3>
 <ul>
-<li><code><a title="lib" href="index.html">lib</a></code></li>
+<li><code><a title="torpido" href="index.html">torpido</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-classes">Classes</a></h3>
 <ul>
 <li>
-<h4><code><a title="lib.visual.Visual" href="#lib.visual.Visual">Visual</a></code></h4>
+<h4><code><a title="torpido.visual.Visual" href="#torpido.visual.Visual">Visual</a></code></h4>
 <ul class="">
-<li><code><a title="lib.visual.Visual.detectBlur" href="#lib.visual.Visual.detectBlur">detectBlur</a></code></li>
-<li><code><a title="lib.visual.Visual.setVideoFps" href="#lib.visual.Visual.setVideoFps">setVideoFps</a></code></li>
-<li><code><a title="lib.visual.Visual.setVideoFrameCount" href="#lib.visual.Visual.setVideoFrameCount">setVideoFrameCount</a></code></li>
-<li><code><a title="lib.visual.Visual.startProcessing" href="#lib.visual.Visual.startProcessing">startProcessing</a></code></li>
-<li><code><a title="lib.visual.Visual.timedRankingNormalize" href="#lib.visual.Visual.timedRankingNormalize">timedRankingNormalize</a></code></li>
+<li><code><a title="torpido.visual.Visual.startProcessing" href="#torpido.visual.Visual.startProcessing">startProcessing</a></code></li>
 </ul>
 </li>
 </ul>

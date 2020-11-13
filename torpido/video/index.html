@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.9.1" />
-<title>lib.noise.waveletHelper API documentation</title>
-<meta name="description" content="Extract wavelet coefficients from the signal" />
+<title>torpido.video API documentation</title>
+<meta name="description" content="" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
 <link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
@@ -19,98 +19,35 @@
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>lib.noise.waveletHelper</code></h1>
+<h1 class="title">Module <code>torpido.video</code></h1>
 </header>
 <section id="section-intro">
-<p>Extract wavelet coefficients from the signal</p>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">&#34;&#34;&#34;
-Extract wavelet coefficients from the signal
-&#34;&#34;&#34;
-
-import pywt
-
-
-def waveletLeafData(waveletPacket: pywt.WaveletPacket):
-    &#34;&#34;&#34;
-    Extract wavelet coefficients from the signal
-
-    Parameters
-    ----------
-    waveletPacket : object
-        pywt wavelte bject
-
-    Returns
-    -------
-    object
-        output data
-    &#34;&#34;&#34;
-    leafData = list()
-    leafNodes = [node.path for node in waveletPacket.get_level(
-        waveletPacket.maxlevel, &#39;freq&#39;)]
-
-    for node in leafNodes:
-        bandData = waveletPacket[node].data
-        leafData.extend(bandData)
-
-    return leafData</code></pre>
+<pre><code class="python">from torpido.video.video_reader import *</code></pre>
 </details>
 </section>
 <section>
-</section>
-<section>
-</section>
-<section>
-<h2 class="section-title" id="header-functions">Functions</h2>
+<h2 class="section-title" id="header-submodules">Sub-modules</h2>
 <dl>
-<dt id="lib.noise.waveletHelper.waveletLeafData"><code class="name flex">
-<span>def <span class="ident">waveletLeafData</span></span>(<span>waveletPacket: pywt._wavelet_packets.WaveletPacket)</span>
-</code></dt>
+<dt><code class="name"><a title="torpido.video.smart_queue" href="smart_queue.html">torpido.video.smart_queue</a></code></dt>
 <dd>
-<div class="desc"><p>Extract wavelet coefficients from the signal</p>
-<h2 id="parameters">Parameters</h2>
-<dl>
-<dt><strong><code>waveletPacket</code></strong> :&ensp;<code>object</code></dt>
-<dd>pywt wavelte bject</dd>
-</dl>
-<h2 id="returns">Returns</h2>
-<dl>
-<dt><code>object</code></dt>
-<dd>output data</dd>
-</dl></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def waveletLeafData(waveletPacket: pywt.WaveletPacket):
-    &#34;&#34;&#34;
-    Extract wavelet coefficients from the signal
-
-    Parameters
-    ----------
-    waveletPacket : object
-        pywt wavelte bject
-
-    Returns
-    -------
-    object
-        output data
-    &#34;&#34;&#34;
-    leafData = list()
-    leafNodes = [node.path for node in waveletPacket.get_level(
-        waveletPacket.maxlevel, &#39;freq&#39;)]
-
-    for node in leafNodes:
-        bandData = waveletPacket[node].data
-        leafData.extend(bandData)
-
-    return leafData</code></pre>
-</details>
+<div class="desc"><p>Smart queue: A simple queue to store the frames read from the
+VideoCapture open cv'
+This one has no blocking writes and reads which makes it more
+…</p></div>
+</dd>
+<dt><code class="name"><a title="torpido.video.video_reader" href="video_reader.html">torpido.video.video_reader</a></code></dt>
+<dd>
+<div class="desc"></div>
 </dd>
 </dl>
+</section>
+<section>
+</section>
+<section>
 </section>
 <section>
 </section>
@@ -123,12 +60,13 @@ def waveletLeafData(waveletPacket: pywt.WaveletPacket):
 <ul id="index">
 <li><h3>Super-module</h3>
 <ul>
-<li><code><a title="lib.noise" href="index.html">lib.noise</a></code></li>
+<li><code><a title="torpido" href="../index.html">torpido</a></code></li>
 </ul>
 </li>
-<li><h3><a href="#header-functions">Functions</a></h3>
-<ul class="">
-<li><code><a title="lib.noise.waveletHelper.waveletLeafData" href="#lib.noise.waveletHelper.waveletLeafData">waveletLeafData</a></code></li>
+<li><h3><a href="#header-submodules">Sub-modules</a></h3>
+<ul>
+<li><code><a title="torpido.video.smart_queue" href="smart_queue.html">torpido.video.smart_queue</a></code></li>
+<li><code><a title="torpido.video.video_reader" href="video_reader.html">torpido.video.video_reader</a></code></li>
 </ul>
 </li>
 </ul>

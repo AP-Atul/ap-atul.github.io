@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.9.1" />
-<title>lib.util.ffmpegTools API documentation</title>
+<title>torpido.tools.ffmpeg API documentation</title>
 <meta name="description" content="Utility functions to run subprocess with generated FFmpeg queries.
 Function to build the commands live here." />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
@@ -20,7 +20,7 @@ Function to build the commands live here." />
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>lib.util.ffmpegTools</code></h1>
+<h1 class="title">Module <code>torpido.tools.ffmpeg</code></h1>
 </header>
 <section id="section-intro">
 <p>Utility functions to run subprocess with generated FFmpeg queries.
@@ -36,7 +36,8 @@ Function to build the commands live here.
 
 import subprocess
 
-from lib.util.logger import Log
+from torpido.exceptions import AudioStreamMissingException, FFmpegProcessException
+from torpido.tools.logger import Log
 
 
 def buildSplitCommand(inputFile, outputAudioFile):
@@ -108,7 +109,7 @@ def split(inputFile, outputAudioFile):
     run.stdout.close()
     if run.wait():
         Log.e(&#34;The splitting process has caused an error.&#34;)
-        return None
+        raise AudioStreamMissingException
 
 
 def buildMergeCommand(videoFile, audioFile, outputFile, timestamps):
@@ -143,9 +144,11 @@ def buildMergeCommand(videoFile, audioFile, outputFile, timestamps):
     &#34;[0:v]split=2[vc1][vc2];
     [vc1]trim=start=304:duration=10.567,setpts=PTS-STARTPTS[v1];
     [vc2]trim=start=100:duration=10.789,setpts=PTS-STARTPTS[v2];
+
     [1:a]asplit=2[ac1][ac2];
     [ac1]atrim=start=0:duration=10.123,asetpts=PTS-STARTPTS[a1];
     [ac2]atrim=start=304:duration=10,asetpts=PTS-STARTPTS[a2];
+
     [v1][a1][v2][a2]concat=n=2:v=1:a=1[video][audio]&#34;
     -map &#34;[video]&#34; -map &#34;[audio]&#34; output_new.mkv
     `
@@ -213,6 +216,14 @@ def merge(videoFile, audioFile, outputFile, timestamps):
     Generate the command for complex filter according to the timestamps and encode the output video. Merge the
     input video file and replace the audio stream with the de-noised audio stream
 
+    Notes
+    ------
+    For using `string` as a command line it is very necessary to add shell=True in the Popen
+    function argument or it won&#39;t work
+
+    Use `stderr=subprocess.STDOUT` to stop printing the command output even though nothing
+    is printing
+
     Parameters
     ----------
     videoFile : str
@@ -227,9 +238,9 @@ def merge(videoFile, audioFile, outputFile, timestamps):
     Yields
     -------
     str
-        continous std out logs
+        continuous std out logs
     &#34;&#34;&#34;
-    # print(f&#34;[TIMESTAMPS] time stamps : {timestamps}&#34;)
+    # print(f&#34;[TIMESTAMPS] timestamps : {timestamps}&#34;)
     command = buildMergeCommand(videoFile, audioFile, outputFile, timestamps)
     # print(command)
     run = subprocess.Popen(args=command,
@@ -243,7 +254,7 @@ def merge(videoFile, audioFile, outputFile, timestamps):
     run.stdout.close()
     if run.wait():
         Log.e(f&#34;The merging process has caused an error.&#34;)
-        return None</code></pre>
+        raise FFmpegProcessException</code></pre>
 </details>
 </section>
 <section>
@@ -253,7 +264,7 @@ def merge(videoFile, audioFile, outputFile, timestamps):
 <section>
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
-<dt id="lib.util.ffmpegTools.buildMergeCommand"><code class="name flex">
+<dt id="torpido.tools.ffmpeg.buildMergeCommand"><code class="name flex">
 <span>def <span class="ident">buildMergeCommand</span></span>(<span>videoFile, audioFile, outputFile, timestamps)</span>
 </code></dt>
 <dd>
@@ -279,15 +290,17 @@ will define the number of the trims</p>
 </dl>
 <h2 id="examples">Examples</h2>
 <p>The command line has following structure</p>
-<p><code>ffmpeg -y -i input.mkv -i input.wav -filter_complex
+<p>`
+ffmpeg -y -i input.mkv -i input.wav -filter_complex
 "[0:v]split=2[vc1][vc2];
 [vc1]trim=start=304:duration=10.567,setpts=PTS-STARTPTS[v1];
-[vc2]trim=start=100:duration=10.789,setpts=PTS-STARTPTS[v2];
-[1:a]asplit=2[ac1][ac2];
+[vc2]trim=start=100:duration=10.789,setpts=PTS-STARTPTS[v2];</p>
+<p>[1:a]asplit=2[ac1][ac2];
 [ac1]atrim=start=0:duration=10.123,asetpts=PTS-STARTPTS[a1];
-[ac2]atrim=start=304:duration=10,asetpts=PTS-STARTPTS[a2];
-[v1][a1][v2][a2]concat=n=2:v=1:a=1[video][audio]"
--map "[video]" -map "[audio]" output_new.mkv</code></p>
+[ac2]atrim=start=304:duration=10,asetpts=PTS-STARTPTS[a2];</p>
+<p>[v1][a1][v2][a2]concat=n=2:v=1:a=1[video][audio]"
+-map "[video]" -map "[audio]" output_new.mkv
+`</p>
 <pre><code>'-y' :              FFmpeg option for 'yes override'. Override the output file it exists
 '-i' :              FFmpeg option for 'input file'. Input file to the command can be multiple
 '-filter_complex' : create a complex filter
@@ -336,9 +349,11 @@ will define the number of the trims</p>
     &#34;[0:v]split=2[vc1][vc2];
     [vc1]trim=start=304:duration=10.567,setpts=PTS-STARTPTS[v1];
     [vc2]trim=start=100:duration=10.789,setpts=PTS-STARTPTS[v2];
+
     [1:a]asplit=2[ac1][ac2];
     [ac1]atrim=start=0:duration=10.123,asetpts=PTS-STARTPTS[a1];
     [ac2]atrim=start=304:duration=10,asetpts=PTS-STARTPTS[a2];
+
     [v1][a1][v2][a2]concat=n=2:v=1:a=1[video][audio]&#34;
     -map &#34;[video]&#34; -map &#34;[audio]&#34; output_new.mkv
     `
@@ -401,7 +416,7 @@ will define the number of the trims</p>
     return filterString</code></pre>
 </details>
 </dd>
-<dt id="lib.util.ffmpegTools.buildSplitCommand"><code class="name flex">
+<dt id="torpido.tools.ffmpeg.buildSplitCommand"><code class="name flex">
 <span>def <span class="ident">buildSplitCommand</span></span>(<span>inputFile, outputAudioFile)</span>
 </code></dt>
 <dd>
@@ -471,12 +486,17 @@ are kept same. The command goes like this</p>
     ]</code></pre>
 </details>
 </dd>
-<dt id="lib.util.ffmpegTools.merge"><code class="name flex">
+<dt id="torpido.tools.ffmpeg.merge"><code class="name flex">
 <span>def <span class="ident">merge</span></span>(<span>videoFile, audioFile, outputFile, timestamps)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Generate the command for complex filter according to the timestamps and encode the output video. Merge the
 input video file and replace the audio stream with the de-noised audio stream</p>
+<h2 id="notes">Notes</h2>
+<p>For using <code>string</code> as a command line it is very necessary to add shell=True in the Popen
+function argument or it won't work</p>
+<p>Use <code>stderr=subprocess.STDOUT</code> to stop printing the command output even though nothing
+is printing</p>
 <h2 id="parameters">Parameters</h2>
 <dl>
 <dt><strong><code>videoFile</code></strong> :&ensp;<code>str</code></dt>
@@ -491,7 +511,7 @@ input video file and replace the audio stream with the de-noised audio stream</p
 <h2 id="yields">Yields</h2>
 <dl>
 <dt><code>str</code></dt>
-<dd>continous std out logs</dd>
+<dd>continuous std out logs</dd>
 </dl></div>
 <details class="source">
 <summary>
@@ -501,6 +521,14 @@ input video file and replace the audio stream with the de-noised audio stream</p
     &#34;&#34;&#34;
     Generate the command for complex filter according to the timestamps and encode the output video. Merge the
     input video file and replace the audio stream with the de-noised audio stream
+
+    Notes
+    ------
+    For using `string` as a command line it is very necessary to add shell=True in the Popen
+    function argument or it won&#39;t work
+
+    Use `stderr=subprocess.STDOUT` to stop printing the command output even though nothing
+    is printing
 
     Parameters
     ----------
@@ -516,9 +544,9 @@ input video file and replace the audio stream with the de-noised audio stream</p
     Yields
     -------
     str
-        continous std out logs
+        continuous std out logs
     &#34;&#34;&#34;
-    # print(f&#34;[TIMESTAMPS] time stamps : {timestamps}&#34;)
+    # print(f&#34;[TIMESTAMPS] timestamps : {timestamps}&#34;)
     command = buildMergeCommand(videoFile, audioFile, outputFile, timestamps)
     # print(command)
     run = subprocess.Popen(args=command,
@@ -532,10 +560,10 @@ input video file and replace the audio stream with the de-noised audio stream</p
     run.stdout.close()
     if run.wait():
         Log.e(f&#34;The merging process has caused an error.&#34;)
-        return None</code></pre>
+        raise FFmpegProcessException</code></pre>
 </details>
 </dd>
-<dt id="lib.util.ffmpegTools.split"><code class="name flex">
+<dt id="torpido.tools.ffmpeg.split"><code class="name flex">
 <span>def <span class="ident">split</span></span>(<span>inputFile, outputAudioFile)</span>
 </code></dt>
 <dd>
@@ -588,7 +616,7 @@ the progress bar. Look into <code>io</code> for details</p>
     run.stdout.close()
     if run.wait():
         Log.e(&#34;The splitting process has caused an error.&#34;)
-        return None</code></pre>
+        raise AudioStreamMissingException</code></pre>
 </details>
 </dd>
 </dl>
@@ -604,15 +632,15 @@ the progress bar. Look into <code>io</code> for details</p>
 <ul id="index">
 <li><h3>Super-module</h3>
 <ul>
-<li><code><a title="lib.util" href="index.html">lib.util</a></code></li>
+<li><code><a title="torpido.tools" href="index.html">torpido.tools</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="">
-<li><code><a title="lib.util.ffmpegTools.buildMergeCommand" href="#lib.util.ffmpegTools.buildMergeCommand">buildMergeCommand</a></code></li>
-<li><code><a title="lib.util.ffmpegTools.buildSplitCommand" href="#lib.util.ffmpegTools.buildSplitCommand">buildSplitCommand</a></code></li>
-<li><code><a title="lib.util.ffmpegTools.merge" href="#lib.util.ffmpegTools.merge">merge</a></code></li>
-<li><code><a title="lib.util.ffmpegTools.split" href="#lib.util.ffmpegTools.split">split</a></code></li>
+<li><code><a title="torpido.tools.ffmpeg.buildMergeCommand" href="#torpido.tools.ffmpeg.buildMergeCommand">buildMergeCommand</a></code></li>
+<li><code><a title="torpido.tools.ffmpeg.buildSplitCommand" href="#torpido.tools.ffmpeg.buildSplitCommand">buildSplitCommand</a></code></li>
+<li><code><a title="torpido.tools.ffmpeg.merge" href="#torpido.tools.ffmpeg.merge">merge</a></code></li>
+<li><code><a title="torpido.tools.ffmpeg.split" href="#torpido.tools.ffmpeg.split">split</a></code></li>
 </ul>
 </li>
 </ul>

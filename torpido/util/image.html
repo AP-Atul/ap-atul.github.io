@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.9.1" />
-<title>lib.util.image API documentation</title>
+<title>torpido.util.image API documentation</title>
 <meta name="description" content="Utility functions to resize the frame from the video or normal image into specified width the increase the
 processing speed on the operations on the …" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
@@ -20,7 +20,7 @@ processing speed on the operations on the …" />
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>lib.util.image</code></h1>
+<h1 class="title">Module <code>torpido.util.image</code></h1>
 </header>
 <section id="section-intro">
 <p>Utility functions to resize the frame from the video or normal image into specified width the increase the
@@ -35,6 +35,7 @@ processing speed on the operations on the frames.
 &#34;&#34;&#34;
 
 import cv2
+import numpy as np
 
 
 def resize(image, width=None, height=None, inter=cv2.INTER_AREA):
@@ -60,7 +61,6 @@ def resize(image, width=None, height=None, inter=cv2.INTER_AREA):
     &#34;&#34;&#34;
     # initialize the dimensions of the image to be resized and
     # grab the image size
-    dim = None
     (h, w) = image.shape[:2]
 
     # if both the width and height are None, then return the
@@ -86,7 +86,88 @@ def resize(image, width=None, height=None, inter=cv2.INTER_AREA):
     resized = cv2.resize(image, dim, interpolation=inter)
 
     # return the resized image
-    return resized</code></pre>
+    return resized
+
+
+def nonMaxSuppression(boxes, probs=None, overlapThresh=0.3):
+    &#34;&#34;&#34;
+    Supression for overlapping boxes from the co-ordinates
+
+    Parameters
+    ----------
+    boxes : box list
+        list of values
+    probs : list
+        value of the probability
+    overlapThresh : float
+        threshold that corrects the overlapping
+
+    Returns
+    -------
+    box list
+        cleaned co-ordinates
+    &#34;&#34;&#34;
+    # if there are no boxes, return an empty list
+    if len(boxes) == 0:
+        return []
+
+    # if the bounding boxes are integers, convert them to floats -- this
+    # is important since we&#39;ll be doing a bunch of divisions
+    if boxes.dtype.kind == &#34;i&#34;:
+        boxes = boxes.astype(&#34;float&#34;)
+
+    # initialize the list of picked indexes
+    pick = []
+
+    # grab the coordinates of the bounding boxes
+    x1 = boxes[:, 0]
+    y1 = boxes[:, 1]
+    x2 = boxes[:, 2]
+    y2 = boxes[:, 3]
+
+    # compute the area of the bounding boxes and grab the indexes to sort
+    # (in the case that no probabilities are provided, simply sort on the
+    # bottom-left y-coordinate)
+    area = (x2 - x1 + 1) * (y2 - y1 + 1)
+    idxs = y2
+
+    # if probabilities are provided, sort on them instead
+    if probs is not None:
+        idxs = probs
+
+    # sort the indexes
+    idxs = np.argsort(idxs)
+
+    # keep looping while some indexes still remain in the indexes list
+    while len(idxs) &gt; 0:
+        # grab the last index in the indexes list and add the index value
+        # to the list of picked indexes
+        last = len(idxs) - 1
+        i = idxs[last]
+        pick.append(i)
+
+        # find the largest (x, y) coordinates for the start of the bounding
+        # box and the smallest (x, y) coordinates for the end of the bounding
+        # box
+        xx1 = np.maximum(x1[i], x1[idxs[:last]])
+        yy1 = np.maximum(y1[i], y1[idxs[:last]])
+        xx2 = np.minimum(x2[i], x2[idxs[:last]])
+        yy2 = np.minimum(y2[i], y2[idxs[:last]])
+
+        # compute the width and height of the bounding box
+        w = np.maximum(0, xx2 - xx1 + 1)
+        h = np.maximum(0, yy2 - yy1 + 1)
+
+        # compute the ratio of overlap
+        overlap = (w * h) / area[idxs[:last]]
+
+        # delete all indexes from the index list that have overlap greater
+        # than the provided overlap threshold
+        idxs = np.delete(idxs, np.concatenate(([last],
+                                               np.where(overlap &gt; overlapThresh)[0])))
+
+    # return only the bounding boxes that were picked
+    return boxes[pick].astype(&#34;int&#34;)</code></pre>
 </details>
 </section>
 <section>
@@ -96,7 +177,111 @@ def resize(image, width=None, height=None, inter=cv2.INTER_AREA):
 <section>
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
-<dt id="lib.util.image.resize"><code class="name flex">
+<dt id="torpido.util.image.nonMaxSuppression"><code class="name flex">
+<span>def <span class="ident">nonMaxSuppression</span></span>(<span>boxes, probs=None, overlapThresh=0.3)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Supression for overlapping boxes from the co-ordinates</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>boxes</code></strong> :&ensp;<code>box list</code></dt>
+<dd>list of values</dd>
+<dt><strong><code>probs</code></strong> :&ensp;<code>list</code></dt>
+<dd>value of the probability</dd>
+<dt><strong><code>overlapThresh</code></strong> :&ensp;<code>float</code></dt>
+<dd>threshold that corrects the overlapping</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>box list</code></dt>
+<dd>cleaned co-ordinates</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def nonMaxSuppression(boxes, probs=None, overlapThresh=0.3):
+    &#34;&#34;&#34;
+    Supression for overlapping boxes from the co-ordinates
+
+    Parameters
+    ----------
+    boxes : box list
+        list of values
+    probs : list
+        value of the probability
+    overlapThresh : float
+        threshold that corrects the overlapping
+
+    Returns
+    -------
+    box list
+        cleaned co-ordinates
+    &#34;&#34;&#34;
+    # if there are no boxes, return an empty list
+    if len(boxes) == 0:
+        return []
+
+    # if the bounding boxes are integers, convert them to floats -- this
+    # is important since we&#39;ll be doing a bunch of divisions
+    if boxes.dtype.kind == &#34;i&#34;:
+        boxes = boxes.astype(&#34;float&#34;)
+
+    # initialize the list of picked indexes
+    pick = []
+
+    # grab the coordinates of the bounding boxes
+    x1 = boxes[:, 0]
+    y1 = boxes[:, 1]
+    x2 = boxes[:, 2]
+    y2 = boxes[:, 3]
+
+    # compute the area of the bounding boxes and grab the indexes to sort
+    # (in the case that no probabilities are provided, simply sort on the
+    # bottom-left y-coordinate)
+    area = (x2 - x1 + 1) * (y2 - y1 + 1)
+    idxs = y2
+
+    # if probabilities are provided, sort on them instead
+    if probs is not None:
+        idxs = probs
+
+    # sort the indexes
+    idxs = np.argsort(idxs)
+
+    # keep looping while some indexes still remain in the indexes list
+    while len(idxs) &gt; 0:
+        # grab the last index in the indexes list and add the index value
+        # to the list of picked indexes
+        last = len(idxs) - 1
+        i = idxs[last]
+        pick.append(i)
+
+        # find the largest (x, y) coordinates for the start of the bounding
+        # box and the smallest (x, y) coordinates for the end of the bounding
+        # box
+        xx1 = np.maximum(x1[i], x1[idxs[:last]])
+        yy1 = np.maximum(y1[i], y1[idxs[:last]])
+        xx2 = np.minimum(x2[i], x2[idxs[:last]])
+        yy2 = np.minimum(y2[i], y2[idxs[:last]])
+
+        # compute the width and height of the bounding box
+        w = np.maximum(0, xx2 - xx1 + 1)
+        h = np.maximum(0, yy2 - yy1 + 1)
+
+        # compute the ratio of overlap
+        overlap = (w * h) / area[idxs[:last]]
+
+        # delete all indexes from the index list that have overlap greater
+        # than the provided overlap threshold
+        idxs = np.delete(idxs, np.concatenate(([last],
+                                               np.where(overlap &gt; overlapThresh)[0])))
+
+    # return only the bounding boxes that were picked
+    return boxes[pick].astype(&#34;int&#34;)</code></pre>
+</details>
+</dd>
+<dt id="torpido.util.image.resize"><code class="name flex">
 <span>def <span class="ident">resize</span></span>(<span>image, width=None, height=None, inter=3)</span>
 </code></dt>
 <dd>
@@ -145,7 +330,6 @@ calculated based on the ratio of the original width of the frame</p>
     &#34;&#34;&#34;
     # initialize the dimensions of the image to be resized and
     # grab the image size
-    dim = None
     (h, w) = image.shape[:2]
 
     # if both the width and height are None, then return the
@@ -187,12 +371,13 @@ calculated based on the ratio of the original width of the frame</p>
 <ul id="index">
 <li><h3>Super-module</h3>
 <ul>
-<li><code><a title="lib.util" href="index.html">lib.util</a></code></li>
+<li><code><a title="torpido.util" href="index.html">torpido.util</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="">
-<li><code><a title="lib.util.image.resize" href="#lib.util.image.resize">resize</a></code></li>
+<li><code><a title="torpido.util.image.nonMaxSuppression" href="#torpido.util.image.nonMaxSuppression">nonMaxSuppression</a></code></li>
+<li><code><a title="torpido.util.image.resize" href="#torpido.util.image.resize">resize</a></code></li>
 </ul>
 </li>
 </ul>

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.9.1" />
-<title>lib.io API documentation</title>
+<title>torpido.io API documentation</title>
 <meta name="description" content="This file contains function to separate out video and audio using ffmpeg.
 It consists of two functions to split and merge video and audio
 using ffmpeg." />
@@ -21,7 +21,7 @@ using ffmpeg." />
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>lib.io</code></h1>
+<h1 class="title">Module <code>torpido.io</code></h1>
 </header>
 <section id="section-intro">
 <p>This file contains function to separate out video and audio using ffmpeg.
@@ -38,12 +38,11 @@ using ffmpeg.
 &#34;&#34;&#34;
 
 import gc
-import os
 
-from lib.progress.progress import Progress
-from lib.util.constants import OUT_VIDEO_FILE, IN_AUDIO_FILE, OUT_AUDIO_FILE
-from lib.util.ffmpegTools import split, merge
-from lib.util.logger import Log
+from torpido.config import *
+from torpido.exceptions import AudioStreamMissingException, FFmpegProcessException
+from torpido.progress import Progress
+from torpido.tools import split, merge
 
 
 class FFMPEG:
@@ -54,29 +53,29 @@ class FFMPEG:
 
     Attributes
     ----------
-    inputFileName : str
+    __inputFileName : str
         input video file name
-    inputFilePath : str
+    __inputFilePath : str
         input video file name
-    outputVideoFileName : str
+    __outputVideoFileName : str
         output video file name
-    inputAudioFileName : str
-        original splitted audio file name
-    outputAudioFileName : str
+    __inputAudioFileName : str
+        original splatted audio file name
+    __outputAudioFileName : str
         de-noised audio file name
-    outputFilePath : str
+    __outputFilePath : str
         same as the input file path
-    progressBar : tqdm
+    __progressBar : tqdm
         object of tqdm to display a progress bar
     &#34;&#34;&#34;
     def __init__(self):
-        self.inputFileName = None
-        self.inputFilePath = None
-        self.outputVideoFileName = None
-        self.inputAudioFileName = None
-        self.outputAudioFileName = None
-        self.outputFilePath = None
-        self.progressBar = None
+        self.__inputFileName = None
+        self.__inputFilePath = None
+        self.__outputVideoFileName = None
+        self.__inputAudioFileName = None
+        self.__outputAudioFileName = None
+        self.__outputFilePath = None
+        self.__progressBar = None
 
     def getInputFileNamePath(self):
         &#34;&#34;&#34;
@@ -87,8 +86,8 @@ class FFMPEG:
         str
             final name and path of the input video file
         &#34;&#34;&#34;
-        if self.inputFileName is not None:
-            return os.path.join(self.inputFilePath, self.inputFileName)
+        if self.__inputFileName is not None:
+            return os.path.join(self.__inputFilePath, self.__inputFileName)
         return None
 
     def getOutputFileNamePath(self):
@@ -101,8 +100,8 @@ class FFMPEG:
         str
             output file name and path of the video file
         &#34;&#34;&#34;
-        if self.outputVideoFileName is not None:
-            return os.path.join(self.outputFilePath, self.outputVideoFileName)
+        if self.__outputVideoFileName is not None:
+            return os.path.join(self.__outputFilePath, self.__outputVideoFileName)
         return None
 
     def getInputAudioFileNamePath(self):
@@ -114,8 +113,8 @@ class FFMPEG:
         str
             input audio file name and path ready to de-noise
         &#34;&#34;&#34;
-        if self.inputAudioFileName is not None:
-            return os.path.join(self.outputFilePath, self.inputAudioFileName)
+        if self.__inputAudioFileName is not None:
+            return os.path.join(self.__outputFilePath, self.__inputAudioFileName)
         return None
 
     def getOutputAudioFileNamePath(self):
@@ -127,8 +126,8 @@ class FFMPEG:
         str
             returns the output audio file
         &#34;&#34;&#34;
-        if self.outputAudioFileName is not None:
-            return os.path.join(self.outputFilePath, self.outputAudioFileName)
+        if self.__outputAudioFileName is not None:
+            return os.path.join(self.__outputFilePath, self.__outputAudioFileName)
         return None
 
     def splitVideoAudio(self, inputFile):
@@ -153,30 +152,34 @@ class FFMPEG:
             Log.e(&#34;File does not exists&#34;)
             return False
 
-        self.inputFilePath = os.path.dirname(inputFile)
-        self.outputFilePath = self.inputFilePath
-        self.inputFileName = os.path.basename(inputFile)
-        self.outputVideoFileName = os.path.splitext(self.inputFileName)[0] + OUT_VIDEO_FILE
-        self.inputAudioFileName = os.path.splitext(self.inputFileName)[0] + IN_AUDIO_FILE
-        self.outputAudioFileName = os.path.splitext(self.inputFileName)[0] + OUT_AUDIO_FILE
+        # storing all the references
+        self.__inputFilePath = os.path.dirname(inputFile)
+        self.__outputFilePath = self.__inputFilePath
+        self.__inputFileName = os.path.basename(inputFile)
+        self.__outputVideoFileName = os.path.splitext(self.__inputFileName)[0] + OUT_VIDEO_FILE
+        self.__inputAudioFileName = os.path.splitext(self.__inputFileName)[0] + IN_AUDIO_FILE
+        self.__outputAudioFileName = os.path.splitext(self.__inputFileName)[0] + OUT_AUDIO_FILE
 
         # call ffmpeg tool to do the splitting
         try:
             Log.i(&#34;Splitting the video file.&#34;)
-            self.progressBar = Progress()
+            self.__progressBar = Progress()
             for log in split(inputFile,
-                             os.path.join(self.outputFilePath, self.inputAudioFileName)):
-                self.progressBar.displayProgress(log)
+                             os.path.join(self.__outputFilePath, self.__inputAudioFileName)):
+                self.__progressBar.displayProgress(log)
 
-        except ChildProcessError:
-            Log.e(&#34;Splitting the input file has caused an error.&#34;)
-            self.progressBar.clear()
-            return False
+            if not os.path.isfile(os.path.join(self.__outputFilePath, self.__inputAudioFileName)):
+                raise AudioStreamMissingException
 
-        finally:
-            self.progressBar.complete()
+            self.__progressBar.complete()
             print(&#34;----------------------------------------------------------&#34;)
             return True
+
+        # no audio in the video
+        except AudioStreamMissingException:
+            Log.e(AudioStreamMissingException.cause)
+            self.__progressBar.clear()
+            return False
 
     def mergeAudioVideo(self, timestamps):
         &#34;&#34;&#34;
@@ -194,41 +197,74 @@ class FFMPEG:
         bool
             True id success else error is raised
         &#34;&#34;&#34;
-        if self.inputFileName is None or self.outputAudioFileName is None:
+        if self.__inputFileName is None or self.__outputAudioFileName is None:
             Log.e(&#34;Files not found for merging&#34;)
             return False
 
         # call ffmpeg tool to merge the files
         try:
-            self.progressBar = Progress()
+            self.__progressBar = Progress()
             Log.i(&#34;Writing the output video file.&#34;)
-            for log in merge(os.path.join(self.outputFilePath, self.inputFileName),
-                             os.path.join(self.outputFilePath, self.outputAudioFileName),
-                             os.path.join(self.outputFilePath, self.outputVideoFileName), timestamps):
-                self.progressBar.displayProgress(log)
+            for log in merge(os.path.join(self.__outputFilePath, self.__inputFileName),
+                             os.path.join(self.__outputFilePath, self.__outputAudioFileName),
+                             os.path.join(self.__outputFilePath, self.__outputVideoFileName),
+                             timestamps):
+                self.__progressBar.displayProgress(log)
 
-        except ChildProcessError:
-            Log.e(&#34;Merging the files has caused an error.&#34;)
-            self.progressBar.clear()
-            return False
+            if not os.path.isfile(os.path.join(self.__outputFilePath, self.__outputVideoFileName)):
+                raise FFmpegProcessException
 
-        finally:
-            self.progressBar.complete()
+            self.__progressBar.complete()
             print(&#34;----------------------------------------------------------&#34;)
             return True
 
+        except FFmpegProcessException:
+            Log.e(FFmpegProcessException.cause)
+            self.__progressBar.clear()
+            return False
+
     def cleanUp(self):
         &#34;&#34;&#34;
-        Deleted the audio files created while audio processing.
-        Minor clean ups.
+        Deletes extra files created while processing, deletes the ranking files
+        cache, etc.
         &#34;&#34;&#34;
-        if os.path.isfile(os.path.join(self.outputFilePath, self.inputAudioFileName)):
-            os.unlink(os.path.join(self.outputFilePath, self.inputAudioFileName))
+        # well something is wrong here then bye
+        if self.__inputFileName is None:
+            return
 
-        if os.path.isfile(os.path.join(self.outputFilePath, self.outputAudioFileName)):
-            os.unlink(os.path.join(self.outputFilePath, self.outputAudioFileName))
+        # original audio split from the video file
+        if os.path.isfile(os.path.join(self.__outputFilePath, self.__inputAudioFileName)):
+            os.unlink(os.path.join(self.__outputFilePath, self.__inputAudioFileName))
 
-        del self.progressBar
+        # de-noised audio file output of Auditory
+        if os.path.isfile(os.path.join(self.__outputFilePath, self.__outputAudioFileName)):
+            os.unlink(os.path.join(self.__outputFilePath, self.__outputAudioFileName))
+
+        # motion ranking file
+        if os.path.isfile(os.path.join(MODEL_DIR, RANK_OUT_MOTION)):
+            os.unlink(os.path.join(MODEL_DIR, RANK_OUT_MOTION))
+
+        # blur ranking file
+        if os.path.isfile(os.path.join(MODEL_DIR, RANK_OUT_BLUR)):
+            os.unlink(os.path.join(MODEL_DIR, RANK_OUT_BLUR))
+
+        # audio ranking file
+        if os.path.isfile(os.path.join(MODEL_DIR, RANK_OUT_AUDIO)):
+            os.unlink(os.path.join(MODEL_DIR, RANK_OUT_AUDIO))
+
+        # text ranking file
+        if os.path.isfile(os.path.join(MODEL_DIR, RANK_OUT_TEXT)):
+            os.unlink(os.path.join(MODEL_DIR, RANK_OUT_TEXT))
+
+        # cache storage file
+        if os.path.isfile(os.path.join(CACHE_DIR, CACHE_NAME)):
+            os.unlink(os.path.join(CACHE_DIR, CACHE_NAME))
+
+        # removing the model directory
+        if os.path.isdir(MODEL_DIR):
+            os.rmdir(MODEL_DIR)
+
+        del self.__progressBar
         Log.d(f&#34;Garbage collected :: {gc.collect()}&#34;)
         Log.d(&#34;Clean up completed.&#34;)</code></pre>
 </details>
@@ -242,7 +278,7 @@ class FFMPEG:
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
 <dl>
-<dt id="lib.io.FFMPEG"><code class="flex name class">
+<dt id="torpido.io.FFMPEG"><code class="flex name class">
 <span>class <span class="ident">FFMPEG</span></span>
 </code></dt>
 <dd>
@@ -251,19 +287,19 @@ to trim and split video files. The std out logs are parsed to generate a progres
 bar to show the progress of the command that is being executed.</p>
 <h2 id="attributes">Attributes</h2>
 <dl>
-<dt><strong><code>inputFileName</code></strong> :&ensp;<code>str</code></dt>
+<dt><strong><code>__inputFileName</code></strong> :&ensp;<code>str</code></dt>
 <dd>input video file name</dd>
-<dt><strong><code>inputFilePath</code></strong> :&ensp;<code>str</code></dt>
+<dt><strong><code>__inputFilePath</code></strong> :&ensp;<code>str</code></dt>
 <dd>input video file name</dd>
-<dt><strong><code>outputVideoFileName</code></strong> :&ensp;<code>str</code></dt>
+<dt><strong><code>__outputVideoFileName</code></strong> :&ensp;<code>str</code></dt>
 <dd>output video file name</dd>
-<dt><strong><code>inputAudioFileName</code></strong> :&ensp;<code>str</code></dt>
-<dd>original splitted audio file name</dd>
-<dt><strong><code>outputAudioFileName</code></strong> :&ensp;<code>str</code></dt>
+<dt><strong><code>__inputAudioFileName</code></strong> :&ensp;<code>str</code></dt>
+<dd>original splatted audio file name</dd>
+<dt><strong><code>__outputAudioFileName</code></strong> :&ensp;<code>str</code></dt>
 <dd>de-noised audio file name</dd>
-<dt><strong><code>outputFilePath</code></strong> :&ensp;<code>str</code></dt>
+<dt><strong><code>__outputFilePath</code></strong> :&ensp;<code>str</code></dt>
 <dd>same as the input file path</dd>
-<dt><strong><code>progressBar</code></strong> :&ensp;<code>tqdm</code></dt>
+<dt><strong><code>__progressBar</code></strong> :&ensp;<code>tqdm</code></dt>
 <dd>object of tqdm to display a progress bar</dd>
 </dl></div>
 <details class="source">
@@ -278,29 +314,29 @@ bar to show the progress of the command that is being executed.</p>
 
     Attributes
     ----------
-    inputFileName : str
+    __inputFileName : str
         input video file name
-    inputFilePath : str
+    __inputFilePath : str
         input video file name
-    outputVideoFileName : str
+    __outputVideoFileName : str
         output video file name
-    inputAudioFileName : str
-        original splitted audio file name
-    outputAudioFileName : str
+    __inputAudioFileName : str
+        original splatted audio file name
+    __outputAudioFileName : str
         de-noised audio file name
-    outputFilePath : str
+    __outputFilePath : str
         same as the input file path
-    progressBar : tqdm
+    __progressBar : tqdm
         object of tqdm to display a progress bar
     &#34;&#34;&#34;
     def __init__(self):
-        self.inputFileName = None
-        self.inputFilePath = None
-        self.outputVideoFileName = None
-        self.inputAudioFileName = None
-        self.outputAudioFileName = None
-        self.outputFilePath = None
-        self.progressBar = None
+        self.__inputFileName = None
+        self.__inputFilePath = None
+        self.__outputVideoFileName = None
+        self.__inputAudioFileName = None
+        self.__outputAudioFileName = None
+        self.__outputFilePath = None
+        self.__progressBar = None
 
     def getInputFileNamePath(self):
         &#34;&#34;&#34;
@@ -311,8 +347,8 @@ bar to show the progress of the command that is being executed.</p>
         str
             final name and path of the input video file
         &#34;&#34;&#34;
-        if self.inputFileName is not None:
-            return os.path.join(self.inputFilePath, self.inputFileName)
+        if self.__inputFileName is not None:
+            return os.path.join(self.__inputFilePath, self.__inputFileName)
         return None
 
     def getOutputFileNamePath(self):
@@ -325,8 +361,8 @@ bar to show the progress of the command that is being executed.</p>
         str
             output file name and path of the video file
         &#34;&#34;&#34;
-        if self.outputVideoFileName is not None:
-            return os.path.join(self.outputFilePath, self.outputVideoFileName)
+        if self.__outputVideoFileName is not None:
+            return os.path.join(self.__outputFilePath, self.__outputVideoFileName)
         return None
 
     def getInputAudioFileNamePath(self):
@@ -338,8 +374,8 @@ bar to show the progress of the command that is being executed.</p>
         str
             input audio file name and path ready to de-noise
         &#34;&#34;&#34;
-        if self.inputAudioFileName is not None:
-            return os.path.join(self.outputFilePath, self.inputAudioFileName)
+        if self.__inputAudioFileName is not None:
+            return os.path.join(self.__outputFilePath, self.__inputAudioFileName)
         return None
 
     def getOutputAudioFileNamePath(self):
@@ -351,8 +387,8 @@ bar to show the progress of the command that is being executed.</p>
         str
             returns the output audio file
         &#34;&#34;&#34;
-        if self.outputAudioFileName is not None:
-            return os.path.join(self.outputFilePath, self.outputAudioFileName)
+        if self.__outputAudioFileName is not None:
+            return os.path.join(self.__outputFilePath, self.__outputAudioFileName)
         return None
 
     def splitVideoAudio(self, inputFile):
@@ -377,30 +413,34 @@ bar to show the progress of the command that is being executed.</p>
             Log.e(&#34;File does not exists&#34;)
             return False
 
-        self.inputFilePath = os.path.dirname(inputFile)
-        self.outputFilePath = self.inputFilePath
-        self.inputFileName = os.path.basename(inputFile)
-        self.outputVideoFileName = os.path.splitext(self.inputFileName)[0] + OUT_VIDEO_FILE
-        self.inputAudioFileName = os.path.splitext(self.inputFileName)[0] + IN_AUDIO_FILE
-        self.outputAudioFileName = os.path.splitext(self.inputFileName)[0] + OUT_AUDIO_FILE
+        # storing all the references
+        self.__inputFilePath = os.path.dirname(inputFile)
+        self.__outputFilePath = self.__inputFilePath
+        self.__inputFileName = os.path.basename(inputFile)
+        self.__outputVideoFileName = os.path.splitext(self.__inputFileName)[0] + OUT_VIDEO_FILE
+        self.__inputAudioFileName = os.path.splitext(self.__inputFileName)[0] + IN_AUDIO_FILE
+        self.__outputAudioFileName = os.path.splitext(self.__inputFileName)[0] + OUT_AUDIO_FILE
 
         # call ffmpeg tool to do the splitting
         try:
             Log.i(&#34;Splitting the video file.&#34;)
-            self.progressBar = Progress()
+            self.__progressBar = Progress()
             for log in split(inputFile,
-                             os.path.join(self.outputFilePath, self.inputAudioFileName)):
-                self.progressBar.displayProgress(log)
+                             os.path.join(self.__outputFilePath, self.__inputAudioFileName)):
+                self.__progressBar.displayProgress(log)
 
-        except ChildProcessError:
-            Log.e(&#34;Splitting the input file has caused an error.&#34;)
-            self.progressBar.clear()
-            return False
+            if not os.path.isfile(os.path.join(self.__outputFilePath, self.__inputAudioFileName)):
+                raise AudioStreamMissingException
 
-        finally:
-            self.progressBar.complete()
+            self.__progressBar.complete()
             print(&#34;----------------------------------------------------------&#34;)
             return True
+
+        # no audio in the video
+        except AudioStreamMissingException:
+            Log.e(AudioStreamMissingException.cause)
+            self.__progressBar.clear()
+            return False
 
     def mergeAudioVideo(self, timestamps):
         &#34;&#34;&#34;
@@ -418,73 +458,136 @@ bar to show the progress of the command that is being executed.</p>
         bool
             True id success else error is raised
         &#34;&#34;&#34;
-        if self.inputFileName is None or self.outputAudioFileName is None:
+        if self.__inputFileName is None or self.__outputAudioFileName is None:
             Log.e(&#34;Files not found for merging&#34;)
             return False
 
         # call ffmpeg tool to merge the files
         try:
-            self.progressBar = Progress()
+            self.__progressBar = Progress()
             Log.i(&#34;Writing the output video file.&#34;)
-            for log in merge(os.path.join(self.outputFilePath, self.inputFileName),
-                             os.path.join(self.outputFilePath, self.outputAudioFileName),
-                             os.path.join(self.outputFilePath, self.outputVideoFileName), timestamps):
-                self.progressBar.displayProgress(log)
+            for log in merge(os.path.join(self.__outputFilePath, self.__inputFileName),
+                             os.path.join(self.__outputFilePath, self.__outputAudioFileName),
+                             os.path.join(self.__outputFilePath, self.__outputVideoFileName),
+                             timestamps):
+                self.__progressBar.displayProgress(log)
 
-        except ChildProcessError:
-            Log.e(&#34;Merging the files has caused an error.&#34;)
-            self.progressBar.clear()
-            return False
+            if not os.path.isfile(os.path.join(self.__outputFilePath, self.__outputVideoFileName)):
+                raise FFmpegProcessException
 
-        finally:
-            self.progressBar.complete()
+            self.__progressBar.complete()
             print(&#34;----------------------------------------------------------&#34;)
             return True
 
+        except FFmpegProcessException:
+            Log.e(FFmpegProcessException.cause)
+            self.__progressBar.clear()
+            return False
+
     def cleanUp(self):
         &#34;&#34;&#34;
-        Deleted the audio files created while audio processing.
-        Minor clean ups.
+        Deletes extra files created while processing, deletes the ranking files
+        cache, etc.
         &#34;&#34;&#34;
-        if os.path.isfile(os.path.join(self.outputFilePath, self.inputAudioFileName)):
-            os.unlink(os.path.join(self.outputFilePath, self.inputAudioFileName))
+        # well something is wrong here then bye
+        if self.__inputFileName is None:
+            return
 
-        if os.path.isfile(os.path.join(self.outputFilePath, self.outputAudioFileName)):
-            os.unlink(os.path.join(self.outputFilePath, self.outputAudioFileName))
+        # original audio split from the video file
+        if os.path.isfile(os.path.join(self.__outputFilePath, self.__inputAudioFileName)):
+            os.unlink(os.path.join(self.__outputFilePath, self.__inputAudioFileName))
 
-        del self.progressBar
+        # de-noised audio file output of Auditory
+        if os.path.isfile(os.path.join(self.__outputFilePath, self.__outputAudioFileName)):
+            os.unlink(os.path.join(self.__outputFilePath, self.__outputAudioFileName))
+
+        # motion ranking file
+        if os.path.isfile(os.path.join(MODEL_DIR, RANK_OUT_MOTION)):
+            os.unlink(os.path.join(MODEL_DIR, RANK_OUT_MOTION))
+
+        # blur ranking file
+        if os.path.isfile(os.path.join(MODEL_DIR, RANK_OUT_BLUR)):
+            os.unlink(os.path.join(MODEL_DIR, RANK_OUT_BLUR))
+
+        # audio ranking file
+        if os.path.isfile(os.path.join(MODEL_DIR, RANK_OUT_AUDIO)):
+            os.unlink(os.path.join(MODEL_DIR, RANK_OUT_AUDIO))
+
+        # text ranking file
+        if os.path.isfile(os.path.join(MODEL_DIR, RANK_OUT_TEXT)):
+            os.unlink(os.path.join(MODEL_DIR, RANK_OUT_TEXT))
+
+        # cache storage file
+        if os.path.isfile(os.path.join(CACHE_DIR, CACHE_NAME)):
+            os.unlink(os.path.join(CACHE_DIR, CACHE_NAME))
+
+        # removing the model directory
+        if os.path.isdir(MODEL_DIR):
+            os.rmdir(MODEL_DIR)
+
+        del self.__progressBar
         Log.d(f&#34;Garbage collected :: {gc.collect()}&#34;)
         Log.d(&#34;Clean up completed.&#34;)</code></pre>
 </details>
 <h3>Methods</h3>
 <dl>
-<dt id="lib.io.FFMPEG.cleanUp"><code class="name flex">
+<dt id="torpido.io.FFMPEG.cleanUp"><code class="name flex">
 <span>def <span class="ident">cleanUp</span></span>(<span>self)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Deleted the audio files created while audio processing.
-Minor clean ups.</p></div>
+<div class="desc"><p>Deletes extra files created while processing, deletes the ranking files
+cache, etc.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def cleanUp(self):
     &#34;&#34;&#34;
-    Deleted the audio files created while audio processing.
-    Minor clean ups.
+    Deletes extra files created while processing, deletes the ranking files
+    cache, etc.
     &#34;&#34;&#34;
-    if os.path.isfile(os.path.join(self.outputFilePath, self.inputAudioFileName)):
-        os.unlink(os.path.join(self.outputFilePath, self.inputAudioFileName))
+    # well something is wrong here then bye
+    if self.__inputFileName is None:
+        return
 
-    if os.path.isfile(os.path.join(self.outputFilePath, self.outputAudioFileName)):
-        os.unlink(os.path.join(self.outputFilePath, self.outputAudioFileName))
+    # original audio split from the video file
+    if os.path.isfile(os.path.join(self.__outputFilePath, self.__inputAudioFileName)):
+        os.unlink(os.path.join(self.__outputFilePath, self.__inputAudioFileName))
 
-    del self.progressBar
+    # de-noised audio file output of Auditory
+    if os.path.isfile(os.path.join(self.__outputFilePath, self.__outputAudioFileName)):
+        os.unlink(os.path.join(self.__outputFilePath, self.__outputAudioFileName))
+
+    # motion ranking file
+    if os.path.isfile(os.path.join(MODEL_DIR, RANK_OUT_MOTION)):
+        os.unlink(os.path.join(MODEL_DIR, RANK_OUT_MOTION))
+
+    # blur ranking file
+    if os.path.isfile(os.path.join(MODEL_DIR, RANK_OUT_BLUR)):
+        os.unlink(os.path.join(MODEL_DIR, RANK_OUT_BLUR))
+
+    # audio ranking file
+    if os.path.isfile(os.path.join(MODEL_DIR, RANK_OUT_AUDIO)):
+        os.unlink(os.path.join(MODEL_DIR, RANK_OUT_AUDIO))
+
+    # text ranking file
+    if os.path.isfile(os.path.join(MODEL_DIR, RANK_OUT_TEXT)):
+        os.unlink(os.path.join(MODEL_DIR, RANK_OUT_TEXT))
+
+    # cache storage file
+    if os.path.isfile(os.path.join(CACHE_DIR, CACHE_NAME)):
+        os.unlink(os.path.join(CACHE_DIR, CACHE_NAME))
+
+    # removing the model directory
+    if os.path.isdir(MODEL_DIR):
+        os.rmdir(MODEL_DIR)
+
+    del self.__progressBar
     Log.d(f&#34;Garbage collected :: {gc.collect()}&#34;)
     Log.d(&#34;Clean up completed.&#34;)</code></pre>
 </details>
 </dd>
-<dt id="lib.io.FFMPEG.getInputAudioFileNamePath"><code class="name flex">
+<dt id="torpido.io.FFMPEG.getInputAudioFileNamePath"><code class="name flex">
 <span>def <span class="ident">getInputAudioFileNamePath</span></span>(<span>self)</span>
 </code></dt>
 <dd>
@@ -507,12 +610,12 @@ Minor clean ups.</p></div>
     str
         input audio file name and path ready to de-noise
     &#34;&#34;&#34;
-    if self.inputAudioFileName is not None:
-        return os.path.join(self.outputFilePath, self.inputAudioFileName)
+    if self.__inputAudioFileName is not None:
+        return os.path.join(self.__outputFilePath, self.__inputAudioFileName)
     return None</code></pre>
 </details>
 </dd>
-<dt id="lib.io.FFMPEG.getInputFileNamePath"><code class="name flex">
+<dt id="torpido.io.FFMPEG.getInputFileNamePath"><code class="name flex">
 <span>def <span class="ident">getInputFileNamePath</span></span>(<span>self)</span>
 </code></dt>
 <dd>
@@ -535,12 +638,12 @@ Minor clean ups.</p></div>
     str
         final name and path of the input video file
     &#34;&#34;&#34;
-    if self.inputFileName is not None:
-        return os.path.join(self.inputFilePath, self.inputFileName)
+    if self.__inputFileName is not None:
+        return os.path.join(self.__inputFilePath, self.__inputFileName)
     return None</code></pre>
 </details>
 </dd>
-<dt id="lib.io.FFMPEG.getOutputAudioFileNamePath"><code class="name flex">
+<dt id="torpido.io.FFMPEG.getOutputAudioFileNamePath"><code class="name flex">
 <span>def <span class="ident">getOutputAudioFileNamePath</span></span>(<span>self)</span>
 </code></dt>
 <dd>
@@ -563,12 +666,12 @@ Minor clean ups.</p></div>
     str
         returns the output audio file
     &#34;&#34;&#34;
-    if self.outputAudioFileName is not None:
-        return os.path.join(self.outputFilePath, self.outputAudioFileName)
+    if self.__outputAudioFileName is not None:
+        return os.path.join(self.__outputFilePath, self.__outputAudioFileName)
     return None</code></pre>
 </details>
 </dd>
-<dt id="lib.io.FFMPEG.getOutputFileNamePath"><code class="name flex">
+<dt id="torpido.io.FFMPEG.getOutputFileNamePath"><code class="name flex">
 <span>def <span class="ident">getOutputFileNamePath</span></span>(<span>self)</span>
 </code></dt>
 <dd>
@@ -593,12 +696,12 @@ file name</p>
     str
         output file name and path of the video file
     &#34;&#34;&#34;
-    if self.outputVideoFileName is not None:
-        return os.path.join(self.outputFilePath, self.outputVideoFileName)
+    if self.__outputVideoFileName is not None:
+        return os.path.join(self.__outputFilePath, self.__outputVideoFileName)
     return None</code></pre>
 </details>
 </dd>
-<dt id="lib.io.FFMPEG.mergeAudioVideo"><code class="name flex">
+<dt id="torpido.io.FFMPEG.mergeAudioVideo"><code class="name flex">
 <span>def <span class="ident">mergeAudioVideo</span></span>(<span>self, timestamps)</span>
 </code></dt>
 <dd>
@@ -635,31 +738,34 @@ file created by <code>Auditory</code></p>
     bool
         True id success else error is raised
     &#34;&#34;&#34;
-    if self.inputFileName is None or self.outputAudioFileName is None:
+    if self.__inputFileName is None or self.__outputAudioFileName is None:
         Log.e(&#34;Files not found for merging&#34;)
         return False
 
     # call ffmpeg tool to merge the files
     try:
-        self.progressBar = Progress()
+        self.__progressBar = Progress()
         Log.i(&#34;Writing the output video file.&#34;)
-        for log in merge(os.path.join(self.outputFilePath, self.inputFileName),
-                         os.path.join(self.outputFilePath, self.outputAudioFileName),
-                         os.path.join(self.outputFilePath, self.outputVideoFileName), timestamps):
-            self.progressBar.displayProgress(log)
+        for log in merge(os.path.join(self.__outputFilePath, self.__inputFileName),
+                         os.path.join(self.__outputFilePath, self.__outputAudioFileName),
+                         os.path.join(self.__outputFilePath, self.__outputVideoFileName),
+                         timestamps):
+            self.__progressBar.displayProgress(log)
 
-    except ChildProcessError:
-        Log.e(&#34;Merging the files has caused an error.&#34;)
-        self.progressBar.clear()
-        return False
+        if not os.path.isfile(os.path.join(self.__outputFilePath, self.__outputVideoFileName)):
+            raise FFmpegProcessException
 
-    finally:
-        self.progressBar.complete()
+        self.__progressBar.complete()
         print(&#34;----------------------------------------------------------&#34;)
-        return True</code></pre>
+        return True
+
+    except FFmpegProcessException:
+        Log.e(FFmpegProcessException.cause)
+        self.__progressBar.clear()
+        return False</code></pre>
 </details>
 </dd>
-<dt id="lib.io.FFMPEG.splitVideoAudio"><code class="name flex">
+<dt id="torpido.io.FFMPEG.splitVideoAudio"><code class="name flex">
 <span>def <span class="ident">splitVideoAudio</span></span>(<span>self, inputFile)</span>
 </code></dt>
 <dd>
@@ -702,30 +808,34 @@ updated as the command is run</p>
         Log.e(&#34;File does not exists&#34;)
         return False
 
-    self.inputFilePath = os.path.dirname(inputFile)
-    self.outputFilePath = self.inputFilePath
-    self.inputFileName = os.path.basename(inputFile)
-    self.outputVideoFileName = os.path.splitext(self.inputFileName)[0] + OUT_VIDEO_FILE
-    self.inputAudioFileName = os.path.splitext(self.inputFileName)[0] + IN_AUDIO_FILE
-    self.outputAudioFileName = os.path.splitext(self.inputFileName)[0] + OUT_AUDIO_FILE
+    # storing all the references
+    self.__inputFilePath = os.path.dirname(inputFile)
+    self.__outputFilePath = self.__inputFilePath
+    self.__inputFileName = os.path.basename(inputFile)
+    self.__outputVideoFileName = os.path.splitext(self.__inputFileName)[0] + OUT_VIDEO_FILE
+    self.__inputAudioFileName = os.path.splitext(self.__inputFileName)[0] + IN_AUDIO_FILE
+    self.__outputAudioFileName = os.path.splitext(self.__inputFileName)[0] + OUT_AUDIO_FILE
 
     # call ffmpeg tool to do the splitting
     try:
         Log.i(&#34;Splitting the video file.&#34;)
-        self.progressBar = Progress()
+        self.__progressBar = Progress()
         for log in split(inputFile,
-                         os.path.join(self.outputFilePath, self.inputAudioFileName)):
-            self.progressBar.displayProgress(log)
+                         os.path.join(self.__outputFilePath, self.__inputAudioFileName)):
+            self.__progressBar.displayProgress(log)
 
-    except ChildProcessError:
-        Log.e(&#34;Splitting the input file has caused an error.&#34;)
-        self.progressBar.clear()
-        return False
+        if not os.path.isfile(os.path.join(self.__outputFilePath, self.__inputAudioFileName)):
+            raise AudioStreamMissingException
 
-    finally:
-        self.progressBar.complete()
+        self.__progressBar.complete()
         print(&#34;----------------------------------------------------------&#34;)
-        return True</code></pre>
+        return True
+
+    # no audio in the video
+    except AudioStreamMissingException:
+        Log.e(AudioStreamMissingException.cause)
+        self.__progressBar.clear()
+        return False</code></pre>
 </details>
 </dd>
 </dl>
@@ -741,21 +851,21 @@ updated as the command is run</p>
 <ul id="index">
 <li><h3>Super-module</h3>
 <ul>
-<li><code><a title="lib" href="index.html">lib</a></code></li>
+<li><code><a title="torpido" href="index.html">torpido</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-classes">Classes</a></h3>
 <ul>
 <li>
-<h4><code><a title="lib.io.FFMPEG" href="#lib.io.FFMPEG">FFMPEG</a></code></h4>
+<h4><code><a title="torpido.io.FFMPEG" href="#torpido.io.FFMPEG">FFMPEG</a></code></h4>
 <ul class="">
-<li><code><a title="lib.io.FFMPEG.cleanUp" href="#lib.io.FFMPEG.cleanUp">cleanUp</a></code></li>
-<li><code><a title="lib.io.FFMPEG.getInputAudioFileNamePath" href="#lib.io.FFMPEG.getInputAudioFileNamePath">getInputAudioFileNamePath</a></code></li>
-<li><code><a title="lib.io.FFMPEG.getInputFileNamePath" href="#lib.io.FFMPEG.getInputFileNamePath">getInputFileNamePath</a></code></li>
-<li><code><a title="lib.io.FFMPEG.getOutputAudioFileNamePath" href="#lib.io.FFMPEG.getOutputAudioFileNamePath">getOutputAudioFileNamePath</a></code></li>
-<li><code><a title="lib.io.FFMPEG.getOutputFileNamePath" href="#lib.io.FFMPEG.getOutputFileNamePath">getOutputFileNamePath</a></code></li>
-<li><code><a title="lib.io.FFMPEG.mergeAudioVideo" href="#lib.io.FFMPEG.mergeAudioVideo">mergeAudioVideo</a></code></li>
-<li><code><a title="lib.io.FFMPEG.splitVideoAudio" href="#lib.io.FFMPEG.splitVideoAudio">splitVideoAudio</a></code></li>
+<li><code><a title="torpido.io.FFMPEG.cleanUp" href="#torpido.io.FFMPEG.cleanUp">cleanUp</a></code></li>
+<li><code><a title="torpido.io.FFMPEG.getInputAudioFileNamePath" href="#torpido.io.FFMPEG.getInputAudioFileNamePath">getInputAudioFileNamePath</a></code></li>
+<li><code><a title="torpido.io.FFMPEG.getInputFileNamePath" href="#torpido.io.FFMPEG.getInputFileNamePath">getInputFileNamePath</a></code></li>
+<li><code><a title="torpido.io.FFMPEG.getOutputAudioFileNamePath" href="#torpido.io.FFMPEG.getOutputAudioFileNamePath">getOutputAudioFileNamePath</a></code></li>
+<li><code><a title="torpido.io.FFMPEG.getOutputFileNamePath" href="#torpido.io.FFMPEG.getOutputFileNamePath">getOutputFileNamePath</a></code></li>
+<li><code><a title="torpido.io.FFMPEG.mergeAudioVideo" href="#torpido.io.FFMPEG.mergeAudioVideo">mergeAudioVideo</a></code></li>
+<li><code><a title="torpido.io.FFMPEG.splitVideoAudio" href="#torpido.io.FFMPEG.splitVideoAudio">splitVideoAudio</a></code></li>
 </ul>
 </li>
 </ul>

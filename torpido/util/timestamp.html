@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.9.1" />
-<title>lib.util.timestampTool API documentation</title>
+<title>torpido.util.timestamp API documentation</title>
 <meta name="description" content="This file will read the ranking for each section, parse it and
 create timestamps in seconds that can be used to clip the video
 using ffmpeg …" />
@@ -21,7 +21,7 @@ using ffmpeg …" />
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>lib.util.timestampTool</code></h1>
+<h1 class="title">Module <code>torpido.util.timestamp</code></h1>
 </header>
 <section id="section-intro">
 <p>This file will read the ranking for each section, parse it and
@@ -30,6 +30,7 @@ using ffmpeg.</p>
 <pre><code>1. Reading the ranks and parsing them to timestamps
 2. Padding the time ranks to generate the timestamps
 3. Validating the timestamps
+4. Returning a list of list containing (start -&gt; end) time stamps
 </code></pre>
 <details class="source">
 <summary>
@@ -43,22 +44,41 @@ using ffmpeg.
     1. Reading the ranks and parsing them to timestamps
     2. Padding the time ranks to generate the timestamps
     3. Validating the timestamps
+    4. Returning a list of list containing (start -&gt; end) time stamps
 
 &#34;&#34;&#34;
 
-import os
+import numpy as np
 
-from joblib import load
+from torpido.config import *
+from torpido.exceptions import RankingOfFeatureMissing
 
-from lib.util.constants import *
-from lib.util.logger import Log
+
+def addPadding(rankList: list, length):
+    &#34;&#34;&#34;
+    Function to add padding to the ranks if there length is lower than that of the
+    required length
+    Average of the rank is added as the padding data, mostly data is below 1
+
+    Parameters
+    ----------
+    rankList : list
+        feature rank list
+    length : int
+        required length
+    &#34;&#34;&#34;
+    rankList.extend([np.average(rankList)] * int(length - len(rankList)))
 
 
 def readTheRankings():
     &#34;&#34;&#34;
     Reads the ranking using the joblib files and calculate
     the final sum ranks
-    TODO: padding if required
+
+    Getting the ranking length for the ranks for the features from max
+    of all the ranks length
+
+    Padding the ranks, so that every feature has equal range
 
     Returns
     -------
@@ -67,35 +87,45 @@ def readTheRankings():
     &#34;&#34;&#34;
     if os.path.isfile(os.path.join(RANK_DIR, RANK_OUT_MOTION)) is False:
         Log.e(&#34;Motion Ranking does not exists&#34;)
-        return
+        return None
 
     if os.path.isfile(os.path.join(RANK_DIR, RANK_OUT_BLUR)) is False:
         Log.e(&#34;Blur Ranking does not exists&#34;)
-        return
+        return None
 
     if os.path.isfile(os.path.join(RANK_DIR, RANK_OUT_TEXT)) is False:
         Log.e(&#34;Text Ranking does not exists&#34;)
-        return
+        return None
 
     if os.path.isfile(os.path.join(RANK_DIR, RANK_OUT_AUDIO)) is False:
         Log.e(&#34;Audio Ranking does not exists&#34;)
-        return
+        return None
 
+    # reading the saved ranking from the joblib files
     motionFile = os.path.join(RANK_DIR, RANK_OUT_MOTION)
     blurFile = os.path.join(RANK_DIR, RANK_OUT_BLUR)
     textFile = os.path.join(RANK_DIR, RANK_OUT_TEXT)
     audioFile = os.path.join(RANK_DIR, RANK_OUT_AUDIO)
+
+    # loading the read files
     motionRank = load(motionFile)
     blurRank = load(blurFile)
     textRank = load(textFile)
     audioRank = load(audioFile)
 
-    minRank = min(len(motionRank), len(blurRank),
-                  len(audioRank), len(textRank))
+    # max length for ranking
+    # NOTE: FFmpeg does not get bothered by greater values, not lower though
+    maxRank = int(max(len(motionRank), len(blurRank),
+                      len(audioRank), len(textRank)))
 
-    return [motionRank[i] + blurRank[i] +
-            textRank[i] + audioRank[i]
-            for i in range(minRank)]
+    # padding the ranks of each feature
+    addPadding(motionRank, maxRank)
+    addPadding(blurRank, maxRank)
+    addPadding(audioRank, maxRank)
+    addPadding(textRank, maxRank)
+
+    return [motionRank, blurRank,
+            textRank, audioRank]
 
 
 def trimByRank(ranks):
@@ -136,6 +166,7 @@ def trimByRank(ranks):
             end = None
             start = None
             prev_end = 0
+
     if start is not None and end is None:
         end = len(ranks)
         timestamps.append([start, end])
@@ -149,18 +180,64 @@ def getTimestamps():
 
     Returns
     -------
-    list
+    list of list
         timestamps list containing start and emd timestamps
 
     &#34;&#34;&#34;
-    timestamps = trimByRank(readTheRankings())
+    motion, blur, text, audio = readTheRankings()
+    ranks = [motion[i] + blur[i] + text[i] + audio[i] for i in range(len(motion))]
+
+    if ranks is not None:
+        timestamps = trimByRank(ranks)
+    else:
+        raise RankingOfFeatureMissing
 
     finalTimestamp = []
+
+    # validating if there are 2 values in list
     for clip in timestamps:
         if len(clip) % 2 == 0:
             finalTimestamp.append(clip)
 
-    return finalTimestamp</code></pre>
+    return finalTimestamp
+
+
+def getOutputVideoLength(timestamps: list):
+    &#34;&#34;&#34;
+    Calculates the output video length from the timestamps, each portion
+    length would be end - start
+
+    Parameters
+    ----------
+    timestamps : list
+        timestamps for the video to edit
+
+    Returns
+    -------
+    int
+        final video length
+
+    References
+    ----------
+
+    timestamps has list of start and end like :
+
+        [[start, end], [start, end]]
+
+    to get a length of each portion
+        end - start
+
+    to get final length
+        finalLength += end[i] - start[i] ; i: 0 -&gt; len(timestamps)
+    &#34;&#34;&#34;
+    videoLength = 0
+    if len(timestamps) &lt; 0:
+        return 0
+
+    for start, end in timestamps:
+        videoLength += abs(end - start)
+
+    return videoLength</code></pre>
 </details>
 </section>
 <section>
@@ -170,14 +247,114 @@ def getTimestamps():
 <section>
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
-<dt id="lib.util.timestampTool.getTimestamps"><code class="name flex">
+<dt id="torpido.util.timestamp.addPadding"><code class="name flex">
+<span>def <span class="ident">addPadding</span></span>(<span>rankList: list, length)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Function to add padding to the ranks if there length is lower than that of the
+required length
+Average of the rank is added as the padding data, mostly data is below 1</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>rankList</code></strong> :&ensp;<code>list</code></dt>
+<dd>feature rank list</dd>
+<dt><strong><code>length</code></strong> :&ensp;<code>int</code></dt>
+<dd>required length</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def addPadding(rankList: list, length):
+    &#34;&#34;&#34;
+    Function to add padding to the ranks if there length is lower than that of the
+    required length
+    Average of the rank is added as the padding data, mostly data is below 1
+
+    Parameters
+    ----------
+    rankList : list
+        feature rank list
+    length : int
+        required length
+    &#34;&#34;&#34;
+    rankList.extend([np.average(rankList)] * int(length - len(rankList)))</code></pre>
+</details>
+</dd>
+<dt id="torpido.util.timestamp.getOutputVideoLength"><code class="name flex">
+<span>def <span class="ident">getOutputVideoLength</span></span>(<span>timestamps: list)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Calculates the output video length from the timestamps, each portion
+length would be end - start</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>timestamps</code></strong> :&ensp;<code>list</code></dt>
+<dd>timestamps for the video to edit</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>int</code></dt>
+<dd>final video length</dd>
+</dl>
+<h2 id="references">References</h2>
+<p>timestamps has list of start and end like :</p>
+<pre><code>[[start, end], [start, end]]
+</code></pre>
+<p>to get a length of each portion
+end - start</p>
+<p>to get final length
+finalLength += end[i] - start[i] ; i: 0 -&gt; len(timestamps)</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def getOutputVideoLength(timestamps: list):
+    &#34;&#34;&#34;
+    Calculates the output video length from the timestamps, each portion
+    length would be end - start
+
+    Parameters
+    ----------
+    timestamps : list
+        timestamps for the video to edit
+
+    Returns
+    -------
+    int
+        final video length
+
+    References
+    ----------
+
+    timestamps has list of start and end like :
+
+        [[start, end], [start, end]]
+
+    to get a length of each portion
+        end - start
+
+    to get final length
+        finalLength += end[i] - start[i] ; i: 0 -&gt; len(timestamps)
+    &#34;&#34;&#34;
+    videoLength = 0
+    if len(timestamps) &lt; 0:
+        return 0
+
+    for start, end in timestamps:
+        videoLength += abs(end - start)
+
+    return videoLength</code></pre>
+</details>
+</dd>
+<dt id="torpido.util.timestamp.getTimestamps"><code class="name flex">
 <span>def <span class="ident">getTimestamps</span></span>(<span>)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Returns parsed timestamps from the ranking of all 4 processing</p>
 <h2 id="returns">Returns</h2>
 <dl>
-<dt><code>list</code></dt>
+<dt><code>list</code> of <code>list</code></dt>
 <dd>timestamps list containing start and emd timestamps</dd>
 </dl></div>
 <details class="source">
@@ -190,13 +367,21 @@ def getTimestamps():
 
     Returns
     -------
-    list
+    list of list
         timestamps list containing start and emd timestamps
 
     &#34;&#34;&#34;
-    timestamps = trimByRank(readTheRankings())
+    motion, blur, text, audio = readTheRankings()
+    ranks = [motion[i] + blur[i] + text[i] + audio[i] for i in range(len(motion))]
+
+    if ranks is not None:
+        timestamps = trimByRank(ranks)
+    else:
+        raise RankingOfFeatureMissing
 
     finalTimestamp = []
+
+    # validating if there are 2 values in list
     for clip in timestamps:
         if len(clip) % 2 == 0:
             finalTimestamp.append(clip)
@@ -204,13 +389,15 @@ def getTimestamps():
     return finalTimestamp</code></pre>
 </details>
 </dd>
-<dt id="lib.util.timestampTool.readTheRankings"><code class="name flex">
+<dt id="torpido.util.timestamp.readTheRankings"><code class="name flex">
 <span>def <span class="ident">readTheRankings</span></span>(<span>)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Reads the ranking using the joblib files and calculate
-the final sum ranks
-TODO: padding if required</p>
+the final sum ranks</p>
+<p>Getting the ranking length for the ranks for the features from max
+of all the ranks length</p>
+<p>Padding the ranks, so that every feature has equal range</p>
 <h2 id="returns">Returns</h2>
 <dl>
 <dt><code>list</code></dt>
@@ -224,7 +411,11 @@ TODO: padding if required</p>
     &#34;&#34;&#34;
     Reads the ranking using the joblib files and calculate
     the final sum ranks
-    TODO: padding if required
+
+    Getting the ranking length for the ranks for the features from max
+    of all the ranks length
+
+    Padding the ranks, so that every feature has equal range
 
     Returns
     -------
@@ -233,38 +424,48 @@ TODO: padding if required</p>
     &#34;&#34;&#34;
     if os.path.isfile(os.path.join(RANK_DIR, RANK_OUT_MOTION)) is False:
         Log.e(&#34;Motion Ranking does not exists&#34;)
-        return
+        return None
 
     if os.path.isfile(os.path.join(RANK_DIR, RANK_OUT_BLUR)) is False:
         Log.e(&#34;Blur Ranking does not exists&#34;)
-        return
+        return None
 
     if os.path.isfile(os.path.join(RANK_DIR, RANK_OUT_TEXT)) is False:
         Log.e(&#34;Text Ranking does not exists&#34;)
-        return
+        return None
 
     if os.path.isfile(os.path.join(RANK_DIR, RANK_OUT_AUDIO)) is False:
         Log.e(&#34;Audio Ranking does not exists&#34;)
-        return
+        return None
 
+    # reading the saved ranking from the joblib files
     motionFile = os.path.join(RANK_DIR, RANK_OUT_MOTION)
     blurFile = os.path.join(RANK_DIR, RANK_OUT_BLUR)
     textFile = os.path.join(RANK_DIR, RANK_OUT_TEXT)
     audioFile = os.path.join(RANK_DIR, RANK_OUT_AUDIO)
+
+    # loading the read files
     motionRank = load(motionFile)
     blurRank = load(blurFile)
     textRank = load(textFile)
     audioRank = load(audioFile)
 
-    minRank = min(len(motionRank), len(blurRank),
-                  len(audioRank), len(textRank))
+    # max length for ranking
+    # NOTE: FFmpeg does not get bothered by greater values, not lower though
+    maxRank = int(max(len(motionRank), len(blurRank),
+                      len(audioRank), len(textRank)))
 
-    return [motionRank[i] + blurRank[i] +
-            textRank[i] + audioRank[i]
-            for i in range(minRank)]</code></pre>
+    # padding the ranks of each feature
+    addPadding(motionRank, maxRank)
+    addPadding(blurRank, maxRank)
+    addPadding(audioRank, maxRank)
+    addPadding(textRank, maxRank)
+
+    return [motionRank, blurRank,
+            textRank, audioRank]</code></pre>
 </details>
 </dd>
-<dt id="lib.util.timestampTool.trimByRank"><code class="name flex">
+<dt id="torpido.util.timestamp.trimByRank"><code class="name flex">
 <span>def <span class="ident">trimByRank</span></span>(<span>ranks)</span>
 </code></dt>
 <dd>
@@ -322,6 +523,7 @@ timestamp for trimming</p>
             end = None
             start = None
             prev_end = 0
+
     if start is not None and end is None:
         end = len(ranks)
         timestamps.append([start, end])
@@ -342,14 +544,16 @@ timestamp for trimming</p>
 <ul id="index">
 <li><h3>Super-module</h3>
 <ul>
-<li><code><a title="lib.util" href="index.html">lib.util</a></code></li>
+<li><code><a title="torpido.util" href="index.html">torpido.util</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="">
-<li><code><a title="lib.util.timestampTool.getTimestamps" href="#lib.util.timestampTool.getTimestamps">getTimestamps</a></code></li>
-<li><code><a title="lib.util.timestampTool.readTheRankings" href="#lib.util.timestampTool.readTheRankings">readTheRankings</a></code></li>
-<li><code><a title="lib.util.timestampTool.trimByRank" href="#lib.util.timestampTool.trimByRank">trimByRank</a></code></li>
+<li><code><a title="torpido.util.timestamp.addPadding" href="#torpido.util.timestamp.addPadding">addPadding</a></code></li>
+<li><code><a title="torpido.util.timestamp.getOutputVideoLength" href="#torpido.util.timestamp.getOutputVideoLength">getOutputVideoLength</a></code></li>
+<li><code><a title="torpido.util.timestamp.getTimestamps" href="#torpido.util.timestamp.getTimestamps">getTimestamps</a></code></li>
+<li><code><a title="torpido.util.timestamp.readTheRankings" href="#torpido.util.timestamp.readTheRankings">readTheRankings</a></code></li>
+<li><code><a title="torpido.util.timestamp.trimByRank" href="#torpido.util.timestamp.trimByRank">trimByRank</a></code></li>
 </ul>
 </li>
 </ul>

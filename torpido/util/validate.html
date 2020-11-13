@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.9.1" />
-<title>lib.util.validate API documentation</title>
+<title>torpido.util.validate API documentation</title>
 <meta name="description" content="Utility function to check if the input file belongs to one of the supported
 formats and can be processed readily if not we will raise errors" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
@@ -20,7 +20,7 @@ formats and can be processed readily if not we will raise errors" />
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>lib.util.validate</code></h1>
+<h1 class="title">Module <code>torpido.util.validate</code></h1>
 </header>
 <section id="section-intro">
 <p>Utility function to check if the input file belongs to one of the supported
@@ -36,8 +36,8 @@ formats and can be processed readily if not we will raise errors
 
 import os
 
-from lib.util.constants import SUPPORTED_VIDEO_FILES
-from lib.util.logger import Log
+from torpido.config import Log
+from torpido.config import SUPPORTED_VIDEO_FILES
 
 
 def checkIfVideo(inputFile):
@@ -75,7 +75,7 @@ def checkIfVideo(inputFile):
 <section>
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
-<dt id="lib.util.validate.checkIfVideo"><code class="name flex">
+<dt id="torpido.util.validate.checkIfVideo"><code class="name flex">
 <span>def <span class="ident">checkIfVideo</span></span>(<span>inputFile)</span>
 </code></dt>
 <dd>
@@ -137,12 +137,12 @@ the input file is a video file of the supported formats defined in the <code>con
 <ul id="index">
 <li><h3>Super-module</h3>
 <ul>
-<li><code><a title="lib.util" href="index.html">lib.util</a></code></li>
+<li><code><a title="torpido.util" href="index.html">torpido.util</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="">
-<li><code><a title="lib.util.validate.checkIfVideo" href="#lib.util.validate.checkIfVideo">checkIfVideo</a></code></li>
+<li><code><a title="torpido.util.validate.checkIfVideo" href="#torpido.util.validate.checkIfVideo">checkIfVideo</a></code></li>
 </ul>
 </li>
 </ul>

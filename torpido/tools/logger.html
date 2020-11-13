@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.9.1" />
-<title>lib.util.logger API documentation</title>
+<title>torpido.tools.logger API documentation</title>
 <meta name="description" content="Main logger class to print to console based on the modes selected or passed. Utility modes support ASCII color formats …" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
@@ -19,7 +19,7 @@
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>lib.util.logger</code></h1>
+<h1 class="title">Module <code>torpido.tools.logger</code></h1>
 </header>
 <section id="section-intro">
 <p>Main logger class to print to console based on the modes selected or passed. Utility modes support ASCII color formats.</p>
@@ -41,8 +41,8 @@ class Log:
 
     Attributes
     ----------
-    modes : dict
-    storing mode string and color
+    Log.modes : dict
+        storing mode string and color
 
     {&#34;mode&#34; : &#34;color&#34;}
 
@@ -66,15 +66,16 @@ class Log:
 
         Parameters
         ----------
-        message : str
-        input message to print
+        message : any
+            input message to print
         mode : str
-        mode to print. Available options:
+            mode to print. Available options:
 
-        &#39;DEBUG&#39; : green color text with tag of [DEBUG]
-        &#39;ERROR&#39; : red color text with tag of [ERROR]
-        &#39;INFO&#39; : blue color text with tag of [INFO]
-        &#39;WARN&#39; : yellow color text with tag of [WARN]
+            &#39;DEBUG&#39; : green color text with tag of [DEBUG]
+            &#39;ERROR&#39; : red color text with tag of [ERROR]
+            &#39;INFO&#39; : blue color text with tag of [INFO]
+            &#39;WARN&#39; : yellow color text with tag of [WARN]
+
         &#34;&#34;&#34;
         print(f&#34;{Log.modes[mode]}[{mode}] {message}&#34;)
 
@@ -87,8 +88,8 @@ class Log:
         Parameters
         ----------
         message : str
-        normal string to print function any fstring or
-        format strings can be possible
+            normal string to print function any fstring or
+            formatted strings can be possible
         &#34;&#34;&#34;
         Log.log(message, mode=&#39;DEBUG&#39;)
 
@@ -101,8 +102,8 @@ class Log:
         Parameters
         ----------
         message : str
-        normal string to print function any fstring or
-        format strings can be possible
+            normal string to print function any fstring or
+            format strings can be possible
         &#34;&#34;&#34;
         Log.log(message, mode=&#39;INFO&#39;)
 
@@ -115,8 +116,8 @@ class Log:
         Parameters
         ----------
         message : str
-        normal string to print function any fstring
-        or format strings can be possible
+            normal string to print function any fstring
+            or format strings can be possible
         &#34;&#34;&#34;
         Log.log(message, mode=&#39;ERROR&#39;)
 
@@ -129,8 +130,8 @@ class Log:
         Parameters
         ----------
         message : str
-        normal string to print function any fstring or
-        format strings can be possible
+            normal string to print function any fstring or
+            format strings can be possible
         &#34;&#34;&#34;
         Log.log(message, mode=&#39;WARN&#39;)</code></pre>
 </details>
@@ -144,17 +145,14 @@ class Log:
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
 <dl>
-<dt id="lib.util.logger.Log"><code class="flex name class">
+<dt id="torpido.tools.logger.Log"><code class="flex name class">
 <span>class <span class="ident">Log</span></span>
 </code></dt>
 <dd>
 <div class="desc"><p>Contains four variety of function each with different color</p>
 <h2 id="attributes">Attributes</h2>
-<dl>
-<dt><strong><code>modes</code></strong> :&ensp;<code>dict</code></dt>
-<dd>&nbsp;</dd>
-</dl>
-<p>storing mode string and color</p>
+<p>Log.modes : dict
+storing mode string and color</p>
 <p>{"mode" : "color"}</p>
 <h2 id="examples">Examples</h2>
 <pre><code class="python-repl">&gt;&gt;&gt; Log.e(&quot;The input file does not exists&quot;)
@@ -172,8 +170,8 @@ class Log:
 
     Attributes
     ----------
-    modes : dict
-    storing mode string and color
+    Log.modes : dict
+        storing mode string and color
 
     {&#34;mode&#34; : &#34;color&#34;}
 
@@ -197,15 +195,16 @@ class Log:
 
         Parameters
         ----------
-        message : str
-        input message to print
+        message : any
+            input message to print
         mode : str
-        mode to print. Available options:
+            mode to print. Available options:
 
-        &#39;DEBUG&#39; : green color text with tag of [DEBUG]
-        &#39;ERROR&#39; : red color text with tag of [ERROR]
-        &#39;INFO&#39; : blue color text with tag of [INFO]
-        &#39;WARN&#39; : yellow color text with tag of [WARN]
+            &#39;DEBUG&#39; : green color text with tag of [DEBUG]
+            &#39;ERROR&#39; : red color text with tag of [ERROR]
+            &#39;INFO&#39; : blue color text with tag of [INFO]
+            &#39;WARN&#39; : yellow color text with tag of [WARN]
+
         &#34;&#34;&#34;
         print(f&#34;{Log.modes[mode]}[{mode}] {message}&#34;)
 
@@ -218,8 +217,8 @@ class Log:
         Parameters
         ----------
         message : str
-        normal string to print function any fstring or
-        format strings can be possible
+            normal string to print function any fstring or
+            formatted strings can be possible
         &#34;&#34;&#34;
         Log.log(message, mode=&#39;DEBUG&#39;)
 
@@ -232,8 +231,8 @@ class Log:
         Parameters
         ----------
         message : str
-        normal string to print function any fstring or
-        format strings can be possible
+            normal string to print function any fstring or
+            format strings can be possible
         &#34;&#34;&#34;
         Log.log(message, mode=&#39;INFO&#39;)
 
@@ -246,8 +245,8 @@ class Log:
         Parameters
         ----------
         message : str
-        normal string to print function any fstring
-        or format strings can be possible
+            normal string to print function any fstring
+            or format strings can be possible
         &#34;&#34;&#34;
         Log.log(message, mode=&#39;ERROR&#39;)
 
@@ -260,21 +259,21 @@ class Log:
         Parameters
         ----------
         message : str
-        normal string to print function any fstring or
-        format strings can be possible
+            normal string to print function any fstring or
+            format strings can be possible
         &#34;&#34;&#34;
         Log.log(message, mode=&#39;WARN&#39;)</code></pre>
 </details>
 <h3>Class variables</h3>
 <dl>
-<dt id="lib.util.logger.Log.modes"><code class="name">var <span class="ident">modes</span></code></dt>
+<dt id="torpido.tools.logger.Log.modes"><code class="name">var <span class="ident">modes</span></code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
 </dl>
 <h3>Static methods</h3>
 <dl>
-<dt id="lib.util.logger.Log.d"><code class="name flex">
+<dt id="torpido.tools.logger.Log.d"><code class="name flex">
 <span>def <span class="ident">d</span></span>(<span>message)</span>
 </code></dt>
 <dd>
@@ -283,10 +282,9 @@ prints the message in <code>DEBUG</code> mode</p>
 <h2 id="parameters">Parameters</h2>
 <dl>
 <dt><strong><code>message</code></strong> :&ensp;<code>str</code></dt>
-<dd>&nbsp;</dd>
-</dl>
-<p>normal string to print function any fstring or
-format strings can be possible</p></div>
+<dd>normal string to print function any fstring or
+formatted strings can be possible</dd>
+</dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -300,13 +298,13 @@ def d(message):
     Parameters
     ----------
     message : str
-    normal string to print function any fstring or
-    format strings can be possible
+        normal string to print function any fstring or
+        formatted strings can be possible
     &#34;&#34;&#34;
     Log.log(message, mode=&#39;DEBUG&#39;)</code></pre>
 </details>
 </dd>
-<dt id="lib.util.logger.Log.e"><code class="name flex">
+<dt id="torpido.tools.logger.Log.e"><code class="name flex">
 <span>def <span class="ident">e</span></span>(<span>message)</span>
 </code></dt>
 <dd>
@@ -315,10 +313,9 @@ prints the message in <code>ERROR</code> mode</p>
 <h2 id="parameters">Parameters</h2>
 <dl>
 <dt><strong><code>message</code></strong> :&ensp;<code>str</code></dt>
-<dd>&nbsp;</dd>
-</dl>
-<p>normal string to print function any fstring
-or format strings can be possible</p></div>
+<dd>normal string to print function any fstring
+or format strings can be possible</dd>
+</dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -332,13 +329,13 @@ def e(message):
     Parameters
     ----------
     message : str
-    normal string to print function any fstring
-    or format strings can be possible
+        normal string to print function any fstring
+        or format strings can be possible
     &#34;&#34;&#34;
     Log.log(message, mode=&#39;ERROR&#39;)</code></pre>
 </details>
 </dd>
-<dt id="lib.util.logger.Log.i"><code class="name flex">
+<dt id="torpido.tools.logger.Log.i"><code class="name flex">
 <span>def <span class="ident">i</span></span>(<span>message)</span>
 </code></dt>
 <dd>
@@ -347,10 +344,9 @@ prints the message in <code>INFO</code> mode</p>
 <h2 id="parameters">Parameters</h2>
 <dl>
 <dt><strong><code>message</code></strong> :&ensp;<code>str</code></dt>
-<dd>&nbsp;</dd>
-</dl>
-<p>normal string to print function any fstring or
-format strings can be possible</p></div>
+<dd>normal string to print function any fstring or
+format strings can be possible</dd>
+</dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -364,30 +360,30 @@ def i(message):
     Parameters
     ----------
     message : str
-    normal string to print function any fstring or
-    format strings can be possible
+        normal string to print function any fstring or
+        format strings can be possible
     &#34;&#34;&#34;
     Log.log(message, mode=&#39;INFO&#39;)</code></pre>
 </details>
 </dd>
-<dt id="lib.util.logger.Log.log"><code class="name flex">
+<dt id="torpido.tools.logger.Log.log"><code class="name flex">
 <span>def <span class="ident">log</span></span>(<span>message, mode='INFO')</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Logs input message with color defined by the mode and a tag of that mode.</p>
 <h2 id="parameters">Parameters</h2>
 <dl>
-<dt><strong><code>message</code></strong> :&ensp;<code>str</code></dt>
-<dd>&nbsp;</dd>
-<dt>input message to print</dt>
+<dt><strong><code>message</code></strong> :&ensp;<code>any</code></dt>
+<dd>input message to print</dd>
 <dt><strong><code>mode</code></strong> :&ensp;<code>str</code></dt>
-<dd>&nbsp;</dd>
-</dl>
+<dd>
 <p>mode to print. Available options:</p>
 <p>'DEBUG' : green color text with tag of [DEBUG]
 'ERROR' : red color text with tag of [ERROR]
 'INFO' : blue color text with tag of [INFO]
-'WARN' : yellow color text with tag of [WARN]</p></div>
+'WARN' : yellow color text with tag of [WARN]</p>
+</dd>
+</dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -399,20 +395,21 @@ def log(message, mode=&#39;INFO&#39;):
 
     Parameters
     ----------
-    message : str
-    input message to print
+    message : any
+        input message to print
     mode : str
-    mode to print. Available options:
+        mode to print. Available options:
 
-    &#39;DEBUG&#39; : green color text with tag of [DEBUG]
-    &#39;ERROR&#39; : red color text with tag of [ERROR]
-    &#39;INFO&#39; : blue color text with tag of [INFO]
-    &#39;WARN&#39; : yellow color text with tag of [WARN]
+        &#39;DEBUG&#39; : green color text with tag of [DEBUG]
+        &#39;ERROR&#39; : red color text with tag of [ERROR]
+        &#39;INFO&#39; : blue color text with tag of [INFO]
+        &#39;WARN&#39; : yellow color text with tag of [WARN]
+
     &#34;&#34;&#34;
     print(f&#34;{Log.modes[mode]}[{mode}] {message}&#34;)</code></pre>
 </details>
 </dd>
-<dt id="lib.util.logger.Log.w"><code class="name flex">
+<dt id="torpido.tools.logger.Log.w"><code class="name flex">
 <span>def <span class="ident">w</span></span>(<span>message)</span>
 </code></dt>
 <dd>
@@ -421,10 +418,9 @@ prints the message in <code>WARN</code> mode</p>
 <h2 id="parameters">Parameters</h2>
 <dl>
 <dt><strong><code>message</code></strong> :&ensp;<code>str</code></dt>
-<dd>&nbsp;</dd>
-</dl>
-<p>normal string to print function any fstring or
-format strings can be possible</p></div>
+<dd>normal string to print function any fstring or
+format strings can be possible</dd>
+</dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -438,8 +434,8 @@ def w(message):
     Parameters
     ----------
     message : str
-    normal string to print function any fstring or
-    format strings can be possible
+        normal string to print function any fstring or
+        format strings can be possible
     &#34;&#34;&#34;
     Log.log(message, mode=&#39;WARN&#39;)</code></pre>
 </details>
@@ -457,20 +453,20 @@ def w(message):
 <ul id="index">
 <li><h3>Super-module</h3>
 <ul>
-<li><code><a title="lib.util" href="index.html">lib.util</a></code></li>
+<li><code><a title="torpido.tools" href="index.html">torpido.tools</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-classes">Classes</a></h3>
 <ul>
 <li>
-<h4><code><a title="lib.util.logger.Log" href="#lib.util.logger.Log">Log</a></code></h4>
+<h4><code><a title="torpido.tools.logger.Log" href="#torpido.tools.logger.Log">Log</a></code></h4>
 <ul class="two-column">
-<li><code><a title="lib.util.logger.Log.d" href="#lib.util.logger.Log.d">d</a></code></li>
-<li><code><a title="lib.util.logger.Log.e" href="#lib.util.logger.Log.e">e</a></code></li>
-<li><code><a title="lib.util.logger.Log.i" href="#lib.util.logger.Log.i">i</a></code></li>
-<li><code><a title="lib.util.logger.Log.log" href="#lib.util.logger.Log.log">log</a></code></li>
-<li><code><a title="lib.util.logger.Log.modes" href="#lib.util.logger.Log.modes">modes</a></code></li>
-<li><code><a title="lib.util.logger.Log.w" href="#lib.util.logger.Log.w">w</a></code></li>
+<li><code><a title="torpido.tools.logger.Log.d" href="#torpido.tools.logger.Log.d">d</a></code></li>
+<li><code><a title="torpido.tools.logger.Log.e" href="#torpido.tools.logger.Log.e">e</a></code></li>
+<li><code><a title="torpido.tools.logger.Log.i" href="#torpido.tools.logger.Log.i">i</a></code></li>
+<li><code><a title="torpido.tools.logger.Log.log" href="#torpido.tools.logger.Log.log">log</a></code></li>
+<li><code><a title="torpido.tools.logger.Log.modes" href="#torpido.tools.logger.Log.modes">modes</a></code></li>
+<li><code><a title="torpido.tools.logger.Log.w" href="#torpido.tools.logger.Log.w">w</a></code></li>
 </ul>
 </li>
 </ul>

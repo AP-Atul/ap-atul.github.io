@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.9.1" />
-<title>lib.progress.progress API documentation</title>
+<title>torpido.progress.progress API documentation</title>
 <meta name="description" content="This file defines the progress base from tqdm
 and updates it according to the FFmpeg
 logs based on
@@ -22,7 +22,7 @@ the time and duration in the logs" />
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>lib.progress.progress</code></h1>
+<h1 class="title">Module <code>torpido.progress.progress</code></h1>
 </header>
 <section id="section-intro">
 <p>This file defines the progress base from tqdm
@@ -41,7 +41,7 @@ the time and duration in the logs
 
 from tqdm import tqdm
 
-from lib.progress.stdExtractor import StdExtractor
+from torpido.progress.std_extractor import StdExtractor
 
 
 class Progress:
@@ -50,18 +50,18 @@ class Progress:
 
     Attributes
     ----------
-    progressBar : object
+    __progressBar : object
         tqdm progress bar
-    totalProgress : int
+    __totalProgress : int
         maintaining the current progress
-    extractor : object
+    __extractor : object
         extractor object to read the stdout logs and parse them
     &#34;&#34;&#34;
 
     def __init__(self):
-        self.progressBar = tqdm(total=100)
-        self.totalProgress = 0
-        self.extractor = StdExtractor()
+        self.__progressBar = tqdm(total=100)
+        self.__totalProgress = 0
+        self.__extractor = StdExtractor()
 
     def displayProgress(self, log, displayLog=False):
         &#34;&#34;&#34;
@@ -78,13 +78,13 @@ class Progress:
         -------
 
         &#34;&#34;&#34;
-        duration, time = self.extractor.extractTimeDuration(log)
+        duration, time = self.__extractor.extractTimeDuration(log)
 
         if time is not None:
             currentProgress = self.getCurrentProgress(duration, time)
-            if currentProgress &gt; self.totalProgress:
-                self.progressBar.update(currentProgress - self.totalProgress)
-                self.totalProgress = currentProgress
+            if currentProgress &gt; self.__totalProgress:
+                self.__progressBar.update(currentProgress - self.__totalProgress)
+                self.__totalProgress = currentProgress
 
         # display log is true then it will print if errors
         elif displayLog:
@@ -117,21 +117,21 @@ class Progress:
         &#34;&#34;&#34;
         explicitly complete the progress bar
         &#34;&#34;&#34;
-        self.progressBar.update(100)
+        self.__progressBar.update(100)
 
     def clear(self):
         &#34;&#34;&#34;
         On occurrence of any error clear the progress bar
         &#34;&#34;&#34;
-        self.progressBar.clear()
+        self.__progressBar.clear()
 
     def __del__(self):
         &#34;&#34;&#34;
         clean up
         &#34;&#34;&#34;
-        self.progressBar.close()
-        del self.progressBar
-        del self.extractor</code></pre>
+        self.__progressBar.close()
+        del self.__progressBar
+        del self.__extractor</code></pre>
 </details>
 </section>
 <section>
@@ -143,18 +143,18 @@ class Progress:
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
 <dl>
-<dt id="lib.progress.progress.Progress"><code class="flex name class">
+<dt id="torpido.progress.progress.Progress"><code class="flex name class">
 <span>class <span class="ident">Progress</span></span>
 </code></dt>
 <dd>
 <div class="desc"><p>Progress creation and initialization of the progress bar and extractor</p>
 <h2 id="attributes">Attributes</h2>
 <dl>
-<dt><strong><code>progressBar</code></strong> :&ensp;<code>object</code></dt>
+<dt><strong><code>__progressBar</code></strong> :&ensp;<code>object</code></dt>
 <dd>tqdm progress bar</dd>
-<dt><strong><code>totalProgress</code></strong> :&ensp;<code>int</code></dt>
+<dt><strong><code>__totalProgress</code></strong> :&ensp;<code>int</code></dt>
 <dd>maintaining the current progress</dd>
-<dt><strong><code>extractor</code></strong> :&ensp;<code>object</code></dt>
+<dt><strong><code>__extractor</code></strong> :&ensp;<code>object</code></dt>
 <dd>extractor object to read the stdout logs and parse them</dd>
 </dl></div>
 <details class="source">
@@ -167,18 +167,18 @@ class Progress:
 
     Attributes
     ----------
-    progressBar : object
+    __progressBar : object
         tqdm progress bar
-    totalProgress : int
+    __totalProgress : int
         maintaining the current progress
-    extractor : object
+    __extractor : object
         extractor object to read the stdout logs and parse them
     &#34;&#34;&#34;
 
     def __init__(self):
-        self.progressBar = tqdm(total=100)
-        self.totalProgress = 0
-        self.extractor = StdExtractor()
+        self.__progressBar = tqdm(total=100)
+        self.__totalProgress = 0
+        self.__extractor = StdExtractor()
 
     def displayProgress(self, log, displayLog=False):
         &#34;&#34;&#34;
@@ -195,13 +195,13 @@ class Progress:
         -------
 
         &#34;&#34;&#34;
-        duration, time = self.extractor.extractTimeDuration(log)
+        duration, time = self.__extractor.extractTimeDuration(log)
 
         if time is not None:
             currentProgress = self.getCurrentProgress(duration, time)
-            if currentProgress &gt; self.totalProgress:
-                self.progressBar.update(currentProgress - self.totalProgress)
-                self.totalProgress = currentProgress
+            if currentProgress &gt; self.__totalProgress:
+                self.__progressBar.update(currentProgress - self.__totalProgress)
+                self.__totalProgress = currentProgress
 
         # display log is true then it will print if errors
         elif displayLog:
@@ -234,25 +234,25 @@ class Progress:
         &#34;&#34;&#34;
         explicitly complete the progress bar
         &#34;&#34;&#34;
-        self.progressBar.update(100)
+        self.__progressBar.update(100)
 
     def clear(self):
         &#34;&#34;&#34;
         On occurrence of any error clear the progress bar
         &#34;&#34;&#34;
-        self.progressBar.clear()
+        self.__progressBar.clear()
 
     def __del__(self):
         &#34;&#34;&#34;
         clean up
         &#34;&#34;&#34;
-        self.progressBar.close()
-        del self.progressBar
-        del self.extractor</code></pre>
+        self.__progressBar.close()
+        del self.__progressBar
+        del self.__extractor</code></pre>
 </details>
 <h3>Static methods</h3>
 <dl>
-<dt id="lib.progress.progress.Progress.getCurrentProgress"><code class="name flex">
+<dt id="torpido.progress.progress.Progress.getCurrentProgress"><code class="name flex">
 <span>def <span class="ident">getCurrentProgress</span></span>(<span>duration, time)</span>
 </code></dt>
 <dd>
@@ -300,7 +300,7 @@ def getCurrentProgress(duration, time):
 </dl>
 <h3>Methods</h3>
 <dl>
-<dt id="lib.progress.progress.Progress.clear"><code class="name flex">
+<dt id="torpido.progress.progress.Progress.clear"><code class="name flex">
 <span>def <span class="ident">clear</span></span>(<span>self)</span>
 </code></dt>
 <dd>
@@ -313,10 +313,10 @@ def getCurrentProgress(duration, time):
     &#34;&#34;&#34;
     On occurrence of any error clear the progress bar
     &#34;&#34;&#34;
-    self.progressBar.clear()</code></pre>
+    self.__progressBar.clear()</code></pre>
 </details>
 </dd>
-<dt id="lib.progress.progress.Progress.complete"><code class="name flex">
+<dt id="torpido.progress.progress.Progress.complete"><code class="name flex">
 <span>def <span class="ident">complete</span></span>(<span>self)</span>
 </code></dt>
 <dd>
@@ -329,10 +329,10 @@ def getCurrentProgress(duration, time):
     &#34;&#34;&#34;
     explicitly complete the progress bar
     &#34;&#34;&#34;
-    self.progressBar.update(100)</code></pre>
+    self.__progressBar.update(100)</code></pre>
 </details>
 </dd>
-<dt id="lib.progress.progress.Progress.displayProgress"><code class="name flex">
+<dt id="torpido.progress.progress.Progress.displayProgress"><code class="name flex">
 <span>def <span class="ident">displayProgress</span></span>(<span>self, log, displayLog=False)</span>
 </code></dt>
 <dd>
@@ -364,13 +364,13 @@ def getCurrentProgress(duration, time):
     -------
 
     &#34;&#34;&#34;
-    duration, time = self.extractor.extractTimeDuration(log)
+    duration, time = self.__extractor.extractTimeDuration(log)
 
     if time is not None:
         currentProgress = self.getCurrentProgress(duration, time)
-        if currentProgress &gt; self.totalProgress:
-            self.progressBar.update(currentProgress - self.totalProgress)
-            self.totalProgress = currentProgress
+        if currentProgress &gt; self.__totalProgress:
+            self.__progressBar.update(currentProgress - self.__totalProgress)
+            self.__totalProgress = currentProgress
 
     # display log is true then it will print if errors
     elif displayLog:
@@ -390,18 +390,18 @@ def getCurrentProgress(duration, time):
 <ul id="index">
 <li><h3>Super-module</h3>
 <ul>
-<li><code><a title="lib.progress" href="index.html">lib.progress</a></code></li>
+<li><code><a title="torpido.progress" href="index.html">torpido.progress</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-classes">Classes</a></h3>
 <ul>
 <li>
-<h4><code><a title="lib.progress.progress.Progress" href="#lib.progress.progress.Progress">Progress</a></code></h4>
+<h4><code><a title="torpido.progress.progress.Progress" href="#torpido.progress.progress.Progress">Progress</a></code></h4>
 <ul class="">
-<li><code><a title="lib.progress.progress.Progress.clear" href="#lib.progress.progress.Progress.clear">clear</a></code></li>
-<li><code><a title="lib.progress.progress.Progress.complete" href="#lib.progress.progress.Progress.complete">complete</a></code></li>
-<li><code><a title="lib.progress.progress.Progress.displayProgress" href="#lib.progress.progress.Progress.displayProgress">displayProgress</a></code></li>
-<li><code><a title="lib.progress.progress.Progress.getCurrentProgress" href="#lib.progress.progress.Progress.getCurrentProgress">getCurrentProgress</a></code></li>
+<li><code><a title="torpido.progress.progress.Progress.clear" href="#torpido.progress.progress.Progress.clear">clear</a></code></li>
+<li><code><a title="torpido.progress.progress.Progress.complete" href="#torpido.progress.progress.Progress.complete">complete</a></code></li>
+<li><code><a title="torpido.progress.progress.Progress.displayProgress" href="#torpido.progress.progress.Progress.displayProgress">displayProgress</a></code></li>
+<li><code><a title="torpido.progress.progress.Progress.getCurrentProgress" href="#torpido.progress.progress.Progress.getCurrentProgress">getCurrentProgress</a></code></li>
 </ul>
 </li>
 </ul>

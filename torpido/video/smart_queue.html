@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.9.1" />
-<title>lib.util.smartQueue API documentation</title>
+<title>torpido.video.smart_queue API documentation</title>
 <meta name="description" content="Smart queue: A simple queue to store the frames read from the
 VideoCapture open cv&#39;
 This one has no blocking writes and reads which makes it more
@@ -22,7 +22,7 @@ This one has no blocking writes and reads which makes it more
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>lib.util.smartQueue</code></h1>
+<h1 class="title">Module <code>torpido.video.smart_queue</code></h1>
 </header>
 <section id="section-intro">
 <p>Smart queue: A simple queue to store the frames read from the
@@ -140,7 +140,7 @@ class SmartQueue:
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
 <dl>
-<dt id="lib.util.smartQueue.SmartQueue"><code class="flex name class">
+<dt id="torpido.video.smart_queue.SmartQueue"><code class="flex name class">
 <span>class <span class="ident">SmartQueue</span></span>
 <span>(</span><span>maxSize=1024)</span>
 </code></dt>
@@ -250,7 +250,7 @@ speed and to get around the locks of the default queue</p>
 </details>
 <h3>Methods</h3>
 <dl>
-<dt id="lib.util.smartQueue.SmartQueue.empty"><code class="name flex">
+<dt id="torpido.video.smart_queue.SmartQueue.empty"><code class="name flex">
 <span>def <span class="ident">empty</span></span>(<span>self)</span>
 </code></dt>
 <dd>
@@ -278,7 +278,7 @@ speed and to get around the locks of the default queue</p>
     return False</code></pre>
 </details>
 </dd>
-<dt id="lib.util.smartQueue.SmartQueue.full"><code class="name flex">
+<dt id="torpido.video.smart_queue.SmartQueue.full"><code class="name flex">
 <span>def <span class="ident">full</span></span>(<span>self)</span>
 </code></dt>
 <dd>
@@ -306,7 +306,7 @@ speed and to get around the locks of the default queue</p>
     return False</code></pre>
 </details>
 </dd>
-<dt id="lib.util.smartQueue.SmartQueue.get"><code class="name flex">
+<dt id="torpido.video.smart_queue.SmartQueue.get"><code class="name flex">
 <span>def <span class="ident">get</span></span>(<span>self, index=0)</span>
 </code></dt>
 <dd>
@@ -342,7 +342,7 @@ speed and to get around the locks of the default queue</p>
     return self.Q.pop(index)</code></pre>
 </details>
 </dd>
-<dt id="lib.util.smartQueue.SmartQueue.put"><code class="name flex">
+<dt id="torpido.video.smart_queue.SmartQueue.put"><code class="name flex">
 <span>def <span class="ident">put</span></span>(<span>self, data)</span>
 </code></dt>
 <dd>
@@ -369,7 +369,7 @@ speed and to get around the locks of the default queue</p>
     self.Q.append(data)</code></pre>
 </details>
 </dd>
-<dt id="lib.util.smartQueue.SmartQueue.qsize"><code class="name flex">
+<dt id="torpido.video.smart_queue.SmartQueue.qsize"><code class="name flex">
 <span>def <span class="ident">qsize</span></span>(<span>self)</span>
 </code></dt>
 <dd>
@@ -409,19 +409,19 @@ speed and to get around the locks of the default queue</p>
 <ul id="index">
 <li><h3>Super-module</h3>
 <ul>
-<li><code><a title="lib.util" href="index.html">lib.util</a></code></li>
+<li><code><a title="torpido.video" href="index.html">torpido.video</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-classes">Classes</a></h3>
 <ul>
 <li>
-<h4><code><a title="lib.util.smartQueue.SmartQueue" href="#lib.util.smartQueue.SmartQueue">SmartQueue</a></code></h4>
+<h4><code><a title="torpido.video.smart_queue.SmartQueue" href="#torpido.video.smart_queue.SmartQueue">SmartQueue</a></code></h4>
 <ul class="">
-<li><code><a title="lib.util.smartQueue.SmartQueue.empty" href="#lib.util.smartQueue.SmartQueue.empty">empty</a></code></li>
-<li><code><a title="lib.util.smartQueue.SmartQueue.full" href="#lib.util.smartQueue.SmartQueue.full">full</a></code></li>
-<li><code><a title="lib.util.smartQueue.SmartQueue.get" href="#lib.util.smartQueue.SmartQueue.get">get</a></code></li>
-<li><code><a title="lib.util.smartQueue.SmartQueue.put" href="#lib.util.smartQueue.SmartQueue.put">put</a></code></li>
-<li><code><a title="lib.util.smartQueue.SmartQueue.qsize" href="#lib.util.smartQueue.SmartQueue.qsize">qsize</a></code></li>
+<li><code><a title="torpido.video.smart_queue.SmartQueue.empty" href="#torpido.video.smart_queue.SmartQueue.empty">empty</a></code></li>
+<li><code><a title="torpido.video.smart_queue.SmartQueue.full" href="#torpido.video.smart_queue.SmartQueue.full">full</a></code></li>
+<li><code><a title="torpido.video.smart_queue.SmartQueue.get" href="#torpido.video.smart_queue.SmartQueue.get">get</a></code></li>
+<li><code><a title="torpido.video.smart_queue.SmartQueue.put" href="#torpido.video.smart_queue.SmartQueue.put">put</a></code></li>
+<li><code><a title="torpido.video.smart_queue.SmartQueue.qsize" href="#torpido.video.smart_queue.SmartQueue.qsize">qsize</a></code></li>
 </ul>
 </li>
 </ul>

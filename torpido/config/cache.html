@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.9.1" />
-<title>lib.util.cache API documentation</title>
+<title>torpido.config.cache API documentation</title>
 <meta name="description" content="A simple cache storage helper to store minimal amount of data
 in the dictionary, if data exists it will return the val or
 None" />
@@ -21,7 +21,7 @@ None" />
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>lib.util.cache</code></h1>
+<h1 class="title">Module <code>torpido.config.cache</code></h1>
 </header>
 <section id="section-intro">
 <p>A simple cache storage helper to store minimal amount of data
@@ -37,12 +37,10 @@ in the dictionary, if data exists it will return the val or
 None
 &#34;&#34;&#34;
 
-import os
-
 from joblib import dump, load
 
-from lib.util.constants import *
-from lib.util.logger import Log
+from torpido.config.constants import *
+from torpido.tools.logger import Log
 
 
 class Cache:
@@ -51,14 +49,14 @@ class Cache:
 
     Attributes
     ----------
-    fileName : str
+    __fileName : str
         file path and name for the cache file to store the data
     &#34;&#34;&#34;
 
     def __init__(self):
         if os.path.isdir(os.path.join(os.getcwd(), CACHE_DIR)) is False:
             os.mkdir(os.path.join(os.getcwd(), CACHE_DIR))
-        self.fileName = os.path.join(os.getcwd(), CACHE_DIR, CACHE_NAME)
+        self.__fileName = os.path.join(os.getcwd(), CACHE_DIR, CACHE_NAME)
 
     def writeDataToCache(self, key, value):
         &#34;&#34;&#34;
@@ -73,18 +71,14 @@ class Cache:
             Value to store any object can be store
 
         &#34;&#34;&#34;
-        if os.path.isfile(self.fileName):
-            try:
-                data = load(self.fileName)
-                data[key] = value
-                dump(data, self.fileName)
-            except:
-                Log.e(&#34;Error reading cache&#34;)
-                return
+        if os.path.isfile(self.__fileName):
+            data = load(self.__fileName)
+            data[key] = value
+            dump(data, self.__fileName)
         else:
             data = dict()
             data[key] = value
-            dump(data, self.fileName)
+            dump(data, self.__fileName)
 
         Log.d(f&#34;[CACHE] : {key} is stored&#34;)
 
@@ -103,8 +97,8 @@ class Cache:
         object
             if exists cache else None
         &#34;&#34;&#34;
-        if os.path.isfile(self.fileName):
-            data = load(self.fileName)
+        if os.path.isfile(self.__fileName):
+            data = load(self.__fileName)
             if key in data:
                 return data[key]
             else:
@@ -124,14 +118,14 @@ class Cache:
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
 <dl>
-<dt id="lib.util.cache.Cache"><code class="flex name class">
+<dt id="torpido.config.cache.Cache"><code class="flex name class">
 <span>class <span class="ident">Cache</span></span>
 </code></dt>
 <dd>
 <div class="desc"><p>Stores a dictionary asa file using joblib. Key-value pair of any object type can be saved.</p>
 <h2 id="attributes">Attributes</h2>
 <dl>
-<dt><strong><code>fileName</code></strong> :&ensp;<code>str</code></dt>
+<dt><strong><code>__fileName</code></strong> :&ensp;<code>str</code></dt>
 <dd>file path and name for the cache file to store the data</dd>
 </dl></div>
 <details class="source">
@@ -144,14 +138,14 @@ class Cache:
 
     Attributes
     ----------
-    fileName : str
+    __fileName : str
         file path and name for the cache file to store the data
     &#34;&#34;&#34;
 
     def __init__(self):
         if os.path.isdir(os.path.join(os.getcwd(), CACHE_DIR)) is False:
             os.mkdir(os.path.join(os.getcwd(), CACHE_DIR))
-        self.fileName = os.path.join(os.getcwd(), CACHE_DIR, CACHE_NAME)
+        self.__fileName = os.path.join(os.getcwd(), CACHE_DIR, CACHE_NAME)
 
     def writeDataToCache(self, key, value):
         &#34;&#34;&#34;
@@ -166,18 +160,14 @@ class Cache:
             Value to store any object can be store
 
         &#34;&#34;&#34;
-        if os.path.isfile(self.fileName):
-            try:
-                data = load(self.fileName)
-                data[key] = value
-                dump(data, self.fileName)
-            except:
-                Log.e(&#34;Error reading cache&#34;)
-                return
+        if os.path.isfile(self.__fileName):
+            data = load(self.__fileName)
+            data[key] = value
+            dump(data, self.__fileName)
         else:
             data = dict()
             data[key] = value
-            dump(data, self.fileName)
+            dump(data, self.__fileName)
 
         Log.d(f&#34;[CACHE] : {key} is stored&#34;)
 
@@ -196,8 +186,8 @@ class Cache:
         object
             if exists cache else None
         &#34;&#34;&#34;
-        if os.path.isfile(self.fileName):
-            data = load(self.fileName)
+        if os.path.isfile(self.__fileName):
+            data = load(self.__fileName)
             if key in data:
                 return data[key]
             else:
@@ -209,7 +199,7 @@ class Cache:
 </details>
 <h3>Methods</h3>
 <dl>
-<dt id="lib.util.cache.Cache.readDataFromCache"><code class="name flex">
+<dt id="torpido.config.cache.Cache.readDataFromCache"><code class="name flex">
 <span>def <span class="ident">readDataFromCache</span></span>(<span>self, key)</span>
 </code></dt>
 <dd>
@@ -244,8 +234,8 @@ printed stating that Cache does not exists</p>
     object
         if exists cache else None
     &#34;&#34;&#34;
-    if os.path.isfile(self.fileName):
-        data = load(self.fileName)
+    if os.path.isfile(self.__fileName):
+        data = load(self.__fileName)
         if key in data:
             return data[key]
         else:
@@ -256,7 +246,7 @@ printed stating that Cache does not exists</p>
         return None</code></pre>
 </details>
 </dd>
-<dt id="lib.util.cache.Cache.writeDataToCache"><code class="name flex">
+<dt id="torpido.config.cache.Cache.writeDataToCache"><code class="name flex">
 <span>def <span class="ident">writeDataToCache</span></span>(<span>self, key, value)</span>
 </code></dt>
 <dd>
@@ -286,18 +276,14 @@ is written Log is printed using <code>Log</code> class</p>
         Value to store any object can be store
 
     &#34;&#34;&#34;
-    if os.path.isfile(self.fileName):
-        try:
-            data = load(self.fileName)
-            data[key] = value
-            dump(data, self.fileName)
-        except:
-            Log.e(&#34;Error reading cache&#34;)
-            return
+    if os.path.isfile(self.__fileName):
+        data = load(self.__fileName)
+        data[key] = value
+        dump(data, self.__fileName)
     else:
         data = dict()
         data[key] = value
-        dump(data, self.fileName)
+        dump(data, self.__fileName)
 
     Log.d(f&#34;[CACHE] : {key} is stored&#34;)</code></pre>
 </details>
@@ -315,16 +301,16 @@ is written Log is printed using <code>Log</code> class</p>
 <ul id="index">
 <li><h3>Super-module</h3>
 <ul>
-<li><code><a title="lib.util" href="index.html">lib.util</a></code></li>
+<li><code><a title="torpido.config" href="index.html">torpido.config</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-classes">Classes</a></h3>
 <ul>
 <li>
-<h4><code><a title="lib.util.cache.Cache" href="#lib.util.cache.Cache">Cache</a></code></h4>
+<h4><code><a title="torpido.config.cache.Cache" href="#torpido.config.cache.Cache">Cache</a></code></h4>
 <ul class="">
-<li><code><a title="lib.util.cache.Cache.readDataFromCache" href="#lib.util.cache.Cache.readDataFromCache">readDataFromCache</a></code></li>
-<li><code><a title="lib.util.cache.Cache.writeDataToCache" href="#lib.util.cache.Cache.writeDataToCache">writeDataToCache</a></code></li>
+<li><code><a title="torpido.config.cache.Cache.readDataFromCache" href="#torpido.config.cache.Cache.readDataFromCache">readDataFromCache</a></code></li>
+<li><code><a title="torpido.config.cache.Cache.writeDataToCache" href="#torpido.config.cache.Cache.writeDataToCache">writeDataToCache</a></code></li>
 </ul>
 </li>
 </ul>

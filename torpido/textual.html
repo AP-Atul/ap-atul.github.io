@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.9.1" />
-<title>lib.textual API documentation</title>
+<title>torpido.textual API documentation</title>
 <meta name="description" content="This file is for calculating the textual ranking for the video
 ,the textual ranking is done by detecting text in the video.
 Text detection is achieved …" />
@@ -21,7 +21,7 @@ Text detection is achieved …" />
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>lib.textual</code></h1>
+<h1 class="title">Module <code>torpido.textual</code></h1>
 </header>
 <section id="section-intro">
 <p>This file is for calculating the textual ranking for the video
@@ -43,16 +43,15 @@ geometry for the sections that contain the text.
 If mixed with text extraction it can give text from the image.
 &#34;&#34;&#34;
 
-import os
 import time
 
 import cv2
 import numpy as np
-from joblib import dump
 
-from lib.util.constants import *
-from lib.util.logger import Log
-from lib.util.videoReader import VideoGet
+from torpido.config import *
+from torpido.exceptions import EastModelEnvironmentMissing
+from torpido.util import image
+from torpido.video import VideoGet
 
 
 class Textual:
@@ -66,44 +65,57 @@ class Textual:
 
     Attributes
     ----------
-    fps : float
+    __fps : float
         video fps
-    frameCount : int
+    __frameCount : int
         number of frames in the video
-    textRanks : list
+    __textRanks : list
         list of the ranks
-    videoGetter : VideoGet
+    __videoGetter : VideoGet
         object of the video get to read the video through thread
-    minConfidence : int
+    __minConfidence : int
         minimum confidence to determine if the video contains text
-    WIDTH : int, default=320
+    __WIDTH : int, default=320
         the east model requires the frame to be size of multiple of 32x32
-    HEIGHT : int, default=320
+    __HEIGHT : int, default=320
         height of the frame
-    skipFrames : int
+    __skipFrames : int
         no of frames to skip
-    textRankPath : str
+    __textRankPath : str
         constants file defines where to store the ranks
+    __net : object
+        loaded east model
+    __textDetectLayerName
+        layer name to detect the text in the video and return the code
+    __textDisplayLayerNames
+        layers to detect and return the coordinates of the boxes of text detected
     &#34;&#34;&#34;
 
     def __init__(self):
-        self.fps = None
-        self.frameCount = None
-        self.textRanks = None
-        self.videoGetter = None
-        self.minConfidence = TEXT_MIN_CONFIDENCE
-        self.WIDTH = 320
-        self.HEIGHT = 320
-        self.skipFrames = TEXT_SKIP_FRAMES
-        self.textRankPath = os.path.join(os.getcwd(), RANK_DIR, RANK_OUT_TEXT)
+        cv2.setUseOptimized(True)
+        self.__fps = None
+        self.__frameCount = None
+        self.__textRanks = None
+        self.__videoGetter = None
+        self.__minConfidence = TEXT_MIN_CONFIDENCE
+        self.__WIDTH = 320  # this val should be multiple of 32
+        self.__HEIGHT = 320  # same thing for this
+        self.__skipFrames = TEXT_SKIP_FRAMES
+        self.__textRankPath = os.path.join(os.getcwd(), RANK_DIR, RANK_OUT_TEXT)
 
         # initializing the model
         # reading the model in the memory
-        self.net = cv2.dnn.readNet(os.getcwd(), TEXT_EAST_MODEL_PATH)
+        if TEXT_EAST_MODEL_PATH is not None:
+            self.__net = cv2.dnn.readNet(TEXT_EAST_MODEL_PATH)
+        else:
+            raise EastModelEnvironmentMissing
 
-        # adding output layers to the model
-        self.layerNames = [&#34;feature_fusion/Conv_7/Sigmoid&#34;,
-                           &#34;feature_fusion/concat_3&#34;]
+        # adding output layer to only return confidence for text
+        self.__textDetectLayerName = [&#34;feature_fusion/Conv_7/Sigmoid&#34;]
+
+        # adding output layers to the model with text detected boxes
+        self.__textDisplayLayerNames = [&#34;feature_fusion/Conv_7/Sigmoid&#34;,
+                                        &#34;feature_fusion/concat_3&#34;]
 
     def startProcessing(self, inputFile, display=False):
         &#34;&#34;&#34;
@@ -122,78 +134,190 @@ class Textual:
             Log.e(f&#34;File {inputFile} does not exists&#34;)
             return
 
-        self.videoGetter = VideoGet(str(inputFile)).start()
-        myClip = self.videoGetter.stream
+        self.__videoGetter = VideoGet(str(inputFile)).start()
+        myClip = self.__videoGetter.stream
 
-        if self.videoGetter.Q.qsize() == 0:
+        if self.__videoGetter.getQueueSize() == 0:
             time.sleep(0.5)
             Log.d(&#34;Waiting for the buffer to fill up.&#34;)
 
-        self.fps = myClip.get(cv2.CAP_PROP_FPS)
-        self.frameCount = myClip.get(cv2.CAP_PROP_FRAME_COUNT)
-        self.skipFrames = int(self.fps * self.skipFrames)
+        self.__fps = myClip.get(cv2.CAP_PROP_FPS)
+        self.__frameCount = myClip.get(cv2.CAP_PROP_FRAME_COUNT)
+        self.__skipFrames = int(self.__fps * self.__skipFrames)
 
         # maintaining the ranks for text detection
         count = 0
-        self.textRanks = []
+        self.__textRanks = []
 
-        while self.videoGetter.more():
-            frame = self.videoGetter.read()
+        while self.__videoGetter.more():
+            frame = self.__videoGetter.read()
 
             if frame is None:
                 break
 
-            original = frame
             # resizing the frame to a multiple of 32 x 32
-            (W, H) = 320, 320
+            # resizing the frame
+            original = frame
+            (H, W) = frame.shape[:2]
+            rW = W / float(self.__WIDTH)
+            rH = H / float(self.__HEIGHT)
+            frame = cv2.resize(frame, (W, H))
             count += 1
 
-            # resizing the frame
-            frame = cv2.resize(frame, (W, H))
+            if count % self.__skipFrames == 0:
 
-            if count % self.skipFrames == 0:
                 #  making the image blob
-                blob = cv2.dnn.blobFromImage(frame, 1.0, (W, H), (123.68, 116.78, 103.94),
+                blob = cv2.dnn.blobFromImage(frame,
+                                             1.0,
+                                             (self.__WIDTH, self.__HEIGHT),
+                                             (123.68, 116.78, 103.94),
                                              swapRB=True, crop=False)
 
-                self.net.setInput(blob)
-                (scores, geometry) = self.net.forward(self.layerNames)
+                # run text detection
+                if display:
+                    detectedText = self.__runTextDetectDisplay(blob, (rW, rH), original)
+                else:
+                    detectedText = self.__runTextDetect(blob)
 
-                (numRows, numCols) = scores.shape[2:4]
-                confidences = []
-
-                # try to optimize this part
-                for y in range(0, numRows):
-                    scoresData = scores[0, 0, y]
-                    for x in range(0, numCols):
-                        if scoresData[x] &lt; self.minConfidence:
-                            continue
-                        confidences.append(scoresData[x])
-
-                # check if the confidence satisfies the threshold
-                # print(f&#34;Average confidence :: {np.mean(confidences)}&#34;)
-                if len(confidences) &gt; 0 and np.mean(confidences) &gt; 0.5:
-                    self.textRanks.extend([RANK_TEXT] * int(self.skipFrames))
+                # if text is detected
+                if detectedText:
+                    self.__textRanks.extend([RANK_TEXT] * int(self.__skipFrames))
                     Log.d(&#34;Text detected.&#34;)
                 else:
-                    self.textRanks.extend([0] * int(self.skipFrames))
-
-            if display:
-                cv2.imshow(&#34;Text Detection&#34;, original)
-                key = cv2.waitKey(1) &amp; 0xFF
-
-                if key == ord(&#34;q&#34;):
-                    break
+                    self.__textRanks.extend([0] * int(self.__skipFrames))
+                    Log.d(&#34;No text detected.&#34;)
 
         # clearing the memory
         myClip.release()
-        self.videoGetter.stop()
+        self.__videoGetter.stop()
         cv2.destroyAllWindows()
 
         # calling the normalization of ranking
-        self.timedRankingNormalize()
+        self.__timedRankingNormalize()
 
-    def timedRankingNormalize(self):
+    def __runTextDetect(self, blob):
+        &#34;&#34;&#34;
+        Function to detect only text and no display. Gets the scores and calculates if the image
+        contains any text
+
+        Parameters
+        ----------
+        blob : blob
+            blob of the image
+
+        Returns
+        -------
+        bool
+            True denotes text detected
+        &#34;&#34;&#34;
+        self.__net.setInput(blob)
+        scores = self.__net.forward(self.__textDetectLayerName)
+        numRows, numCols = np.asarray(scores).shape[3: 5]
+        confidences = []
+
+        # since image is 320x320 the output is 80x80 (scores)
+        for x in range(0, numRows):
+            scoreData = scores[0][0][0][x]
+            for y in range(0, numCols):
+                if scoreData[y] &lt; self.__minConfidence:
+                    continue
+
+                confidences.append(scoreData[y])
+
+        # if confidences contain some value
+        if len(confidences) &gt; 0:
+            return True
+        return False
+
+    def __runTextDetectDisplay(self, blob, rSize, original):
+        &#34;&#34;&#34;
+        Function to detect text using layer for getting the rectangles
+        to display on the frame
+
+        Parameters
+        ----------
+        blob : blob
+            blob of the image
+        rSize : tuple
+            real sizes of the images
+        original : image array
+            un-resized image to display
+
+        Returns
+        -------
+        bool
+            True denotes text detected
+        &#34;&#34;&#34;
+        # running the model
+        self.__net.setInput(blob=blob)
+        scores, geometry = self.__net.forward(self.__textDisplayLayerNames)
+
+        numRows, numCols = scores.shape[2:4]
+        rect = []
+        confidences = []
+
+        # since image is 320x320 the output is 80x80 (scores)
+        for y in range(0, numRows):
+            scoresData = scores[0, 0, y]
+            xData0 = geometry[0, 0, y]
+            xData1 = geometry[0, 1, y]
+            xData2 = geometry[0, 2, y]
+            xData3 = geometry[0, 3, y]
+            anglesData = geometry[0, 4, y]
+
+            for x in range(0, numCols):
+                # if our score does not have sufficient probability, ignore it
+                if scoresData[x] &lt; self.__minConfidence:
+                    continue
+
+                # compute the offset factor as our resulting feature maps will
+                # be 4x smaller than the input image
+                (offsetX, offsetY) = (x * 4, y * 4)
+
+                # extract the rotation angle for the prediction and then
+                # compute the sin and cosine
+                angle = anglesData[x]
+                cos = np.cos(angle)
+                sin = np.sin(angle)
+
+                # use the geometry volume to derive the width and height of
+                # the bounding box
+                h = xData0[x] + xData2[x]
+                w = xData1[x] + xData3[x]
+
+                # compute both the starting and ending (x, y)-coordinates for
+                # the text prediction bounding box
+                endX = int(offsetX + (cos * xData1[x]) + (sin * xData2[x]))
+                endY = int(offsetY - (sin * xData1[x]) + (cos * xData2[x]))
+                startX = int(endX - w)
+                startY = int(endY - h)
+
+                # add the bounding box coordinates and probability score to
+                # our respective lists
+                rect.append((startX, startY, endX, endY))
+                confidences.append(scoresData[x])
+
+        # compressing the boxes or rectangles
+        boxes = image.nonMaxSuppression(np.array(rect), probs=confidences)
+
+        rW, rH = rSize
+        for startX, startY, endX, endY in boxes:
+            startX = int(startX * rW)
+            startY = int(startY * rH)
+            endX = int(endX * rW)
+            endY = int(endY * rH)
+
+            # draw the bounding box on the image
+            cv2.rectangle(original, (startX, startY), (endX, endY), (0, 255, 0), 2)
+
+        cv2.imshow(&#34;Text Detection&#34;, original)
+        cv2.waitKey(1) &amp; 0xFF
+
+        if len(confidences) &gt; 0:
+            return True
+        return False
+
+    def __timedRankingNormalize(self):
         &#34;&#34;&#34;
         Since ranking is added to frames, since frames are duration * fps
         and audio frame system is different since frame are duration * rate
@@ -208,14 +332,14 @@ class Textual:
         mean/average as the rank for the 1 sec
         &#34;&#34;&#34;
         textNormalize = []
-        for i in range(0, int(self.frameCount), int(self.fps)):
-            if len(self.textRanks) &gt;= (i + int(self.fps)):
-                textNormalize.append(np.mean(self.textRanks[i: i + int(self.fps)]))
+        for i in range(0, int(self.__frameCount), int(self.__fps)):
+            if len(self.__textRanks) &gt;= (i + int(self.__fps)):
+                textNormalize.append(np.mean(self.__textRanks[i: i + int(self.__fps)]))
             else:
                 break
 
         # saving all processed stuffs
-        dump(textNormalize, self.textRankPath)
+        dump(textNormalize, self.__textRankPath)
         Log.d(f&#34;Textual rank length {len(textNormalize)}&#34;)
         Log.i(&#34;Textual ranking saved .............&#34;)
 
@@ -223,9 +347,8 @@ class Textual:
         &#34;&#34;&#34;
         clean ups
         &#34;&#34;&#34;
-        del self.net
-        del self.layerNames
-        del self.videoGetter
+        del self.__net
+        del self.__videoGetter
         Log.d(&#34;Cleaning up.&#34;)</code></pre>
 </details>
 </section>
@@ -238,7 +361,7 @@ class Textual:
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
 <dl>
-<dt id="lib.textual.Textual"><code class="flex name class">
+<dt id="torpido.textual.Textual"><code class="flex name class">
 <span>class <span class="ident">Textual</span></span>
 </code></dt>
 <dd>
@@ -249,24 +372,30 @@ OpenCV is used to detect text in the video.</p>
 are skipped <code>TEXT_SKIP_FRAMES</code> determines the no of frames to skip</p>
 <h2 id="attributes">Attributes</h2>
 <dl>
-<dt><strong><code>fps</code></strong> :&ensp;<code>float</code></dt>
+<dt><strong><code>__fps</code></strong> :&ensp;<code>float</code></dt>
 <dd>video fps</dd>
-<dt><strong><code>frameCount</code></strong> :&ensp;<code>int</code></dt>
+<dt><strong><code>__frameCount</code></strong> :&ensp;<code>int</code></dt>
 <dd>number of frames in the video</dd>
-<dt><strong><code>textRanks</code></strong> :&ensp;<code>list</code></dt>
+<dt><strong><code>__textRanks</code></strong> :&ensp;<code>list</code></dt>
 <dd>list of the ranks</dd>
-<dt><strong><code>videoGetter</code></strong> :&ensp;<code>VideoGet</code></dt>
+<dt><strong><code>__videoGetter</code></strong> :&ensp;<code>VideoGet</code></dt>
 <dd>object of the video get to read the video through thread</dd>
-<dt><strong><code>minConfidence</code></strong> :&ensp;<code>int</code></dt>
+<dt><strong><code>__minConfidence</code></strong> :&ensp;<code>int</code></dt>
 <dd>minimum confidence to determine if the video contains text</dd>
-<dt><strong><code>WIDTH</code></strong> :&ensp;<code>int</code>, default=<code>320</code></dt>
+<dt><strong><code>__WIDTH</code></strong> :&ensp;<code>int</code>, default=<code>320</code></dt>
 <dd>the east model requires the frame to be size of multiple of 32x32</dd>
-<dt><strong><code>HEIGHT</code></strong> :&ensp;<code>int</code>, default=<code>320</code></dt>
+<dt><strong><code>__HEIGHT</code></strong> :&ensp;<code>int</code>, default=<code>320</code></dt>
 <dd>height of the frame</dd>
-<dt><strong><code>skipFrames</code></strong> :&ensp;<code>int</code></dt>
+<dt><strong><code>__skipFrames</code></strong> :&ensp;<code>int</code></dt>
 <dd>no of frames to skip</dd>
-<dt><strong><code>textRankPath</code></strong> :&ensp;<code>str</code></dt>
+<dt><strong><code>__textRankPath</code></strong> :&ensp;<code>str</code></dt>
 <dd>constants file defines where to store the ranks</dd>
+<dt><strong><code>__net</code></strong> :&ensp;<code>object</code></dt>
+<dd>loaded east model</dd>
+<dt><strong><code>__textDetectLayerName</code></strong></dt>
+<dd>layer name to detect the text in the video and return the code</dd>
+<dt><strong><code>__textDisplayLayerNames</code></strong></dt>
+<dd>layers to detect and return the coordinates of the boxes of text detected</dd>
 </dl></div>
 <details class="source">
 <summary>
@@ -283,44 +412,57 @@ are skipped <code>TEXT_SKIP_FRAMES</code> determines the no of frames to skip</p
 
     Attributes
     ----------
-    fps : float
+    __fps : float
         video fps
-    frameCount : int
+    __frameCount : int
         number of frames in the video
-    textRanks : list
+    __textRanks : list
         list of the ranks
-    videoGetter : VideoGet
+    __videoGetter : VideoGet
         object of the video get to read the video through thread
-    minConfidence : int
+    __minConfidence : int
         minimum confidence to determine if the video contains text
-    WIDTH : int, default=320
+    __WIDTH : int, default=320
         the east model requires the frame to be size of multiple of 32x32
-    HEIGHT : int, default=320
+    __HEIGHT : int, default=320
         height of the frame
-    skipFrames : int
+    __skipFrames : int
         no of frames to skip
-    textRankPath : str
+    __textRankPath : str
         constants file defines where to store the ranks
+    __net : object
+        loaded east model
+    __textDetectLayerName
+        layer name to detect the text in the video and return the code
+    __textDisplayLayerNames
+        layers to detect and return the coordinates of the boxes of text detected
     &#34;&#34;&#34;
 
     def __init__(self):
-        self.fps = None
-        self.frameCount = None
-        self.textRanks = None
-        self.videoGetter = None
-        self.minConfidence = TEXT_MIN_CONFIDENCE
-        self.WIDTH = 320
-        self.HEIGHT = 320
-        self.skipFrames = TEXT_SKIP_FRAMES
-        self.textRankPath = os.path.join(os.getcwd(), RANK_DIR, RANK_OUT_TEXT)
+        cv2.setUseOptimized(True)
+        self.__fps = None
+        self.__frameCount = None
+        self.__textRanks = None
+        self.__videoGetter = None
+        self.__minConfidence = TEXT_MIN_CONFIDENCE
+        self.__WIDTH = 320  # this val should be multiple of 32
+        self.__HEIGHT = 320  # same thing for this
+        self.__skipFrames = TEXT_SKIP_FRAMES
+        self.__textRankPath = os.path.join(os.getcwd(), RANK_DIR, RANK_OUT_TEXT)
 
         # initializing the model
         # reading the model in the memory
-        self.net = cv2.dnn.readNet(os.getcwd(), TEXT_EAST_MODEL_PATH)
+        if TEXT_EAST_MODEL_PATH is not None:
+            self.__net = cv2.dnn.readNet(TEXT_EAST_MODEL_PATH)
+        else:
+            raise EastModelEnvironmentMissing
 
-        # adding output layers to the model
-        self.layerNames = [&#34;feature_fusion/Conv_7/Sigmoid&#34;,
-                           &#34;feature_fusion/concat_3&#34;]
+        # adding output layer to only return confidence for text
+        self.__textDetectLayerName = [&#34;feature_fusion/Conv_7/Sigmoid&#34;]
+
+        # adding output layers to the model with text detected boxes
+        self.__textDisplayLayerNames = [&#34;feature_fusion/Conv_7/Sigmoid&#34;,
+                                        &#34;feature_fusion/concat_3&#34;]
 
     def startProcessing(self, inputFile, display=False):
         &#34;&#34;&#34;
@@ -339,78 +481,190 @@ are skipped <code>TEXT_SKIP_FRAMES</code> determines the no of frames to skip</p
             Log.e(f&#34;File {inputFile} does not exists&#34;)
             return
 
-        self.videoGetter = VideoGet(str(inputFile)).start()
-        myClip = self.videoGetter.stream
+        self.__videoGetter = VideoGet(str(inputFile)).start()
+        myClip = self.__videoGetter.stream
 
-        if self.videoGetter.Q.qsize() == 0:
+        if self.__videoGetter.getQueueSize() == 0:
             time.sleep(0.5)
             Log.d(&#34;Waiting for the buffer to fill up.&#34;)
 
-        self.fps = myClip.get(cv2.CAP_PROP_FPS)
-        self.frameCount = myClip.get(cv2.CAP_PROP_FRAME_COUNT)
-        self.skipFrames = int(self.fps * self.skipFrames)
+        self.__fps = myClip.get(cv2.CAP_PROP_FPS)
+        self.__frameCount = myClip.get(cv2.CAP_PROP_FRAME_COUNT)
+        self.__skipFrames = int(self.__fps * self.__skipFrames)
 
         # maintaining the ranks for text detection
         count = 0
-        self.textRanks = []
+        self.__textRanks = []
 
-        while self.videoGetter.more():
-            frame = self.videoGetter.read()
+        while self.__videoGetter.more():
+            frame = self.__videoGetter.read()
 
             if frame is None:
                 break
 
-            original = frame
             # resizing the frame to a multiple of 32 x 32
-            (W, H) = 320, 320
+            # resizing the frame
+            original = frame
+            (H, W) = frame.shape[:2]
+            rW = W / float(self.__WIDTH)
+            rH = H / float(self.__HEIGHT)
+            frame = cv2.resize(frame, (W, H))
             count += 1
 
-            # resizing the frame
-            frame = cv2.resize(frame, (W, H))
+            if count % self.__skipFrames == 0:
 
-            if count % self.skipFrames == 0:
                 #  making the image blob
-                blob = cv2.dnn.blobFromImage(frame, 1.0, (W, H), (123.68, 116.78, 103.94),
+                blob = cv2.dnn.blobFromImage(frame,
+                                             1.0,
+                                             (self.__WIDTH, self.__HEIGHT),
+                                             (123.68, 116.78, 103.94),
                                              swapRB=True, crop=False)
 
-                self.net.setInput(blob)
-                (scores, geometry) = self.net.forward(self.layerNames)
+                # run text detection
+                if display:
+                    detectedText = self.__runTextDetectDisplay(blob, (rW, rH), original)
+                else:
+                    detectedText = self.__runTextDetect(blob)
 
-                (numRows, numCols) = scores.shape[2:4]
-                confidences = []
-
-                # try to optimize this part
-                for y in range(0, numRows):
-                    scoresData = scores[0, 0, y]
-                    for x in range(0, numCols):
-                        if scoresData[x] &lt; self.minConfidence:
-                            continue
-                        confidences.append(scoresData[x])
-
-                # check if the confidence satisfies the threshold
-                # print(f&#34;Average confidence :: {np.mean(confidences)}&#34;)
-                if len(confidences) &gt; 0 and np.mean(confidences) &gt; 0.5:
-                    self.textRanks.extend([RANK_TEXT] * int(self.skipFrames))
+                # if text is detected
+                if detectedText:
+                    self.__textRanks.extend([RANK_TEXT] * int(self.__skipFrames))
                     Log.d(&#34;Text detected.&#34;)
                 else:
-                    self.textRanks.extend([0] * int(self.skipFrames))
-
-            if display:
-                cv2.imshow(&#34;Text Detection&#34;, original)
-                key = cv2.waitKey(1) &amp; 0xFF
-
-                if key == ord(&#34;q&#34;):
-                    break
+                    self.__textRanks.extend([0] * int(self.__skipFrames))
+                    Log.d(&#34;No text detected.&#34;)
 
         # clearing the memory
         myClip.release()
-        self.videoGetter.stop()
+        self.__videoGetter.stop()
         cv2.destroyAllWindows()
 
         # calling the normalization of ranking
-        self.timedRankingNormalize()
+        self.__timedRankingNormalize()
 
-    def timedRankingNormalize(self):
+    def __runTextDetect(self, blob):
+        &#34;&#34;&#34;
+        Function to detect only text and no display. Gets the scores and calculates if the image
+        contains any text
+
+        Parameters
+        ----------
+        blob : blob
+            blob of the image
+
+        Returns
+        -------
+        bool
+            True denotes text detected
+        &#34;&#34;&#34;
+        self.__net.setInput(blob)
+        scores = self.__net.forward(self.__textDetectLayerName)
+        numRows, numCols = np.asarray(scores).shape[3: 5]
+        confidences = []
+
+        # since image is 320x320 the output is 80x80 (scores)
+        for x in range(0, numRows):
+            scoreData = scores[0][0][0][x]
+            for y in range(0, numCols):
+                if scoreData[y] &lt; self.__minConfidence:
+                    continue
+
+                confidences.append(scoreData[y])
+
+        # if confidences contain some value
+        if len(confidences) &gt; 0:
+            return True
+        return False
+
+    def __runTextDetectDisplay(self, blob, rSize, original):
+        &#34;&#34;&#34;
+        Function to detect text using layer for getting the rectangles
+        to display on the frame
+
+        Parameters
+        ----------
+        blob : blob
+            blob of the image
+        rSize : tuple
+            real sizes of the images
+        original : image array
+            un-resized image to display
+
+        Returns
+        -------
+        bool
+            True denotes text detected
+        &#34;&#34;&#34;
+        # running the model
+        self.__net.setInput(blob=blob)
+        scores, geometry = self.__net.forward(self.__textDisplayLayerNames)
+
+        numRows, numCols = scores.shape[2:4]
+        rect = []
+        confidences = []
+
+        # since image is 320x320 the output is 80x80 (scores)
+        for y in range(0, numRows):
+            scoresData = scores[0, 0, y]
+            xData0 = geometry[0, 0, y]
+            xData1 = geometry[0, 1, y]
+            xData2 = geometry[0, 2, y]
+            xData3 = geometry[0, 3, y]
+            anglesData = geometry[0, 4, y]
+
+            for x in range(0, numCols):
+                # if our score does not have sufficient probability, ignore it
+                if scoresData[x] &lt; self.__minConfidence:
+                    continue
+
+                # compute the offset factor as our resulting feature maps will
+                # be 4x smaller than the input image
+                (offsetX, offsetY) = (x * 4, y * 4)
+
+                # extract the rotation angle for the prediction and then
+                # compute the sin and cosine
+                angle = anglesData[x]
+                cos = np.cos(angle)
+                sin = np.sin(angle)
+
+                # use the geometry volume to derive the width and height of
+                # the bounding box
+                h = xData0[x] + xData2[x]
+                w = xData1[x] + xData3[x]
+
+                # compute both the starting and ending (x, y)-coordinates for
+                # the text prediction bounding box
+                endX = int(offsetX + (cos * xData1[x]) + (sin * xData2[x]))
+                endY = int(offsetY - (sin * xData1[x]) + (cos * xData2[x]))
+                startX = int(endX - w)
+                startY = int(endY - h)
+
+                # add the bounding box coordinates and probability score to
+                # our respective lists
+                rect.append((startX, startY, endX, endY))
+                confidences.append(scoresData[x])
+
+        # compressing the boxes or rectangles
+        boxes = image.nonMaxSuppression(np.array(rect), probs=confidences)
+
+        rW, rH = rSize
+        for startX, startY, endX, endY in boxes:
+            startX = int(startX * rW)
+            startY = int(startY * rH)
+            endX = int(endX * rW)
+            endY = int(endY * rH)
+
+            # draw the bounding box on the image
+            cv2.rectangle(original, (startX, startY), (endX, endY), (0, 255, 0), 2)
+
+        cv2.imshow(&#34;Text Detection&#34;, original)
+        cv2.waitKey(1) &amp; 0xFF
+
+        if len(confidences) &gt; 0:
+            return True
+        return False
+
+    def __timedRankingNormalize(self):
         &#34;&#34;&#34;
         Since ranking is added to frames, since frames are duration * fps
         and audio frame system is different since frame are duration * rate
@@ -425,14 +679,14 @@ are skipped <code>TEXT_SKIP_FRAMES</code> determines the no of frames to skip</p
         mean/average as the rank for the 1 sec
         &#34;&#34;&#34;
         textNormalize = []
-        for i in range(0, int(self.frameCount), int(self.fps)):
-            if len(self.textRanks) &gt;= (i + int(self.fps)):
-                textNormalize.append(np.mean(self.textRanks[i: i + int(self.fps)]))
+        for i in range(0, int(self.__frameCount), int(self.__fps)):
+            if len(self.__textRanks) &gt;= (i + int(self.__fps)):
+                textNormalize.append(np.mean(self.__textRanks[i: i + int(self.__fps)]))
             else:
                 break
 
         # saving all processed stuffs
-        dump(textNormalize, self.textRankPath)
+        dump(textNormalize, self.__textRankPath)
         Log.d(f&#34;Textual rank length {len(textNormalize)}&#34;)
         Log.i(&#34;Textual ranking saved .............&#34;)
 
@@ -440,14 +694,13 @@ are skipped <code>TEXT_SKIP_FRAMES</code> determines the no of frames to skip</p
         &#34;&#34;&#34;
         clean ups
         &#34;&#34;&#34;
-        del self.net
-        del self.layerNames
-        del self.videoGetter
+        del self.__net
+        del self.__videoGetter
         Log.d(&#34;Cleaning up.&#34;)</code></pre>
 </details>
 <h3>Methods</h3>
 <dl>
-<dt id="lib.textual.Textual.startProcessing"><code class="name flex">
+<dt id="torpido.textual.Textual.startProcessing"><code class="name flex">
 <span>def <span class="ident">startProcessing</span></span>(<span>self, inputFile, display=False)</span>
 </code></dt>
 <dd>
@@ -481,120 +734,66 @@ The video can be displayed as the processing is going on.</p>
         Log.e(f&#34;File {inputFile} does not exists&#34;)
         return
 
-    self.videoGetter = VideoGet(str(inputFile)).start()
-    myClip = self.videoGetter.stream
+    self.__videoGetter = VideoGet(str(inputFile)).start()
+    myClip = self.__videoGetter.stream
 
-    if self.videoGetter.Q.qsize() == 0:
+    if self.__videoGetter.getQueueSize() == 0:
         time.sleep(0.5)
         Log.d(&#34;Waiting for the buffer to fill up.&#34;)
 
-    self.fps = myClip.get(cv2.CAP_PROP_FPS)
-    self.frameCount = myClip.get(cv2.CAP_PROP_FRAME_COUNT)
-    self.skipFrames = int(self.fps * self.skipFrames)
+    self.__fps = myClip.get(cv2.CAP_PROP_FPS)
+    self.__frameCount = myClip.get(cv2.CAP_PROP_FRAME_COUNT)
+    self.__skipFrames = int(self.__fps * self.__skipFrames)
 
     # maintaining the ranks for text detection
     count = 0
-    self.textRanks = []
+    self.__textRanks = []
 
-    while self.videoGetter.more():
-        frame = self.videoGetter.read()
+    while self.__videoGetter.more():
+        frame = self.__videoGetter.read()
 
         if frame is None:
             break
 
-        original = frame
         # resizing the frame to a multiple of 32 x 32
-        (W, H) = 320, 320
+        # resizing the frame
+        original = frame
+        (H, W) = frame.shape[:2]
+        rW = W / float(self.__WIDTH)
+        rH = H / float(self.__HEIGHT)
+        frame = cv2.resize(frame, (W, H))
         count += 1
 
-        # resizing the frame
-        frame = cv2.resize(frame, (W, H))
+        if count % self.__skipFrames == 0:
 
-        if count % self.skipFrames == 0:
             #  making the image blob
-            blob = cv2.dnn.blobFromImage(frame, 1.0, (W, H), (123.68, 116.78, 103.94),
+            blob = cv2.dnn.blobFromImage(frame,
+                                         1.0,
+                                         (self.__WIDTH, self.__HEIGHT),
+                                         (123.68, 116.78, 103.94),
                                          swapRB=True, crop=False)
 
-            self.net.setInput(blob)
-            (scores, geometry) = self.net.forward(self.layerNames)
+            # run text detection
+            if display:
+                detectedText = self.__runTextDetectDisplay(blob, (rW, rH), original)
+            else:
+                detectedText = self.__runTextDetect(blob)
 
-            (numRows, numCols) = scores.shape[2:4]
-            confidences = []
-
-            # try to optimize this part
-            for y in range(0, numRows):
-                scoresData = scores[0, 0, y]
-                for x in range(0, numCols):
-                    if scoresData[x] &lt; self.minConfidence:
-                        continue
-                    confidences.append(scoresData[x])
-
-            # check if the confidence satisfies the threshold
-            # print(f&#34;Average confidence :: {np.mean(confidences)}&#34;)
-            if len(confidences) &gt; 0 and np.mean(confidences) &gt; 0.5:
-                self.textRanks.extend([RANK_TEXT] * int(self.skipFrames))
+            # if text is detected
+            if detectedText:
+                self.__textRanks.extend([RANK_TEXT] * int(self.__skipFrames))
                 Log.d(&#34;Text detected.&#34;)
             else:
-                self.textRanks.extend([0] * int(self.skipFrames))
-
-        if display:
-            cv2.imshow(&#34;Text Detection&#34;, original)
-            key = cv2.waitKey(1) &amp; 0xFF
-
-            if key == ord(&#34;q&#34;):
-                break
+                self.__textRanks.extend([0] * int(self.__skipFrames))
+                Log.d(&#34;No text detected.&#34;)
 
     # clearing the memory
     myClip.release()
-    self.videoGetter.stop()
+    self.__videoGetter.stop()
     cv2.destroyAllWindows()
 
     # calling the normalization of ranking
-    self.timedRankingNormalize()</code></pre>
-</details>
-</dd>
-<dt id="lib.textual.Textual.timedRankingNormalize"><code class="name flex">
-<span>def <span class="ident">timedRankingNormalize</span></span>(<span>self)</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Since ranking is added to frames, since frames are duration * fps
-and audio frame system is different since frame are duration * rate
-so we need to generalize the ranking system</p>
-<p>sol: ranking sec of the video and audio, for than taking mean of the
-frames to generate rank for video.
-since ranking is 0 or 1, the mean will be different and we get more versatile
-results.</p>
-<p>we will read the list and slice the video to get 1 sec of frames and get
-mean/average as the rank for the 1 sec</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def timedRankingNormalize(self):
-    &#34;&#34;&#34;
-    Since ranking is added to frames, since frames are duration * fps
-    and audio frame system is different since frame are duration * rate
-    so we need to generalize the ranking system
-
-    sol: ranking sec of the video and audio, for than taking mean of the
-    frames to generate rank for video.
-    since ranking is 0 or 1, the mean will be different and we get more versatile
-    results.
-
-    we will read the list and slice the video to get 1 sec of frames and get
-    mean/average as the rank for the 1 sec
-    &#34;&#34;&#34;
-    textNormalize = []
-    for i in range(0, int(self.frameCount), int(self.fps)):
-        if len(self.textRanks) &gt;= (i + int(self.fps)):
-            textNormalize.append(np.mean(self.textRanks[i: i + int(self.fps)]))
-        else:
-            break
-
-    # saving all processed stuffs
-    dump(textNormalize, self.textRankPath)
-    Log.d(f&#34;Textual rank length {len(textNormalize)}&#34;)
-    Log.i(&#34;Textual ranking saved .............&#34;)</code></pre>
+    self.__timedRankingNormalize()</code></pre>
 </details>
 </dd>
 </dl>
@@ -610,16 +809,15 @@ mean/average as the rank for the 1 sec</p></div>
 <ul id="index">
 <li><h3>Super-module</h3>
 <ul>
-<li><code><a title="lib" href="index.html">lib</a></code></li>
+<li><code><a title="torpido" href="index.html">torpido</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-classes">Classes</a></h3>
 <ul>
 <li>
-<h4><code><a title="lib.textual.Textual" href="#lib.textual.Textual">Textual</a></code></h4>
+<h4><code><a title="torpido.textual.Textual" href="#torpido.textual.Textual">Textual</a></code></h4>
 <ul class="">
-<li><code><a title="lib.textual.Textual.startProcessing" href="#lib.textual.Textual.startProcessing">startProcessing</a></code></li>
-<li><code><a title="lib.textual.Textual.timedRankingNormalize" href="#lib.textual.Textual.timedRankingNormalize">timedRankingNormalize</a></code></li>
+<li><code><a title="torpido.textual.Textual.startProcessing" href="#torpido.textual.Textual.startProcessing">startProcessing</a></code></li>
 </ul>
 </li>
 </ul>

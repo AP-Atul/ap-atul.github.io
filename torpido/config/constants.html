@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.9.1" />
-<title>lib.util.constants API documentation</title>
+<title>torpido.config.constants API documentation</title>
 <meta name="description" content="" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
@@ -19,14 +19,16 @@
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>lib.util.constants</code></h1>
+<h1 class="title">Module <code>torpido.config.constants</code></h1>
 </header>
 <section id="section-intro">
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python"># file to save all the constants that are to be used
+<pre><code class="python">import os
+
+# file to save all the constants that are to be used
 # ******************* CACHE PART *************************
 # cache store dir
 CACHE_DIR = &#34;model/&#34;
@@ -46,10 +48,10 @@ CACHE_AUDIO_INFO = &#34;CACHE_AUDIO_INFO&#34;
 
 # ******************* RANKS ****************************
 # ranking for motion in video
-RANK_MOTION = 5
+RANK_MOTION = 3
 
 # ranking for blur in video
-RANK_BLUR = 1
+RANK_BLUR = 2
 
 # ranking for audio silence
 RANK_AUDIO = 3
@@ -108,7 +110,7 @@ TEXT_MIN_CONFIDENCE = 0.5
 TEXT_SKIP_FRAMES = 10
 
 # text detection model directory
-TEXT_EAST_MODEL_PATH = &#34;model/frozen_east_text_detection.pb&#34;
+TEXT_EAST_MODEL_PATH = os.environ[&#39;EAST_MODEL&#39;]
 
 # name of the ranking file
 RANK_OUT_TEXT = &#34;text_ranking.joblib&#34;
@@ -130,7 +132,11 @@ IN_AUDIO_FILE = &#34;_audio.wav&#34;
 OUT_AUDIO_FILE = &#34;_audio_de_noised.wav&#34;
 
 # supported video file formats
-SUPPORTED_VIDEO_FILES = [&#34;.mp4&#34;, &#34;.webm&#34;, &#34;.mkv&#34;, &#34;.mov&#34;, &#34;.flv&#34;, &#34;.avi&#34;, &#34;.ogg&#34;]</code></pre>
+SUPPORTED_VIDEO_FILES = [&#34;.mp4&#34;, &#34;.webm&#34;, &#34;.mkv&#34;, &#34;.mov&#34;, &#34;.flv&#34;, &#34;.avi&#34;, &#34;.ogg&#34;]
+
+# ********************* WATCHER ***********************************
+# delay to check the CPU and MEM usage (in secs)
+WATCHER_DELAY = 3</code></pre>
 </details>
 </section>
 <section>
@@ -150,7 +156,7 @@ SUPPORTED_VIDEO_FILES = [&#34;.mp4&#34;, &#34;.webm&#34;, &#34;.mkv&#34;, &#34;.
 <ul id="index">
 <li><h3>Super-module</h3>
 <ul>
-<li><code><a title="lib.util" href="index.html">lib.util</a></code></li>
+<li><code><a title="torpido.config" href="index.html">torpido.config</a></code></li>
 </ul>
 </li>
 </ul>

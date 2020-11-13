@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.9.1" />
-<title>torpido.analytics API documentation</title>
+<title>torpido.exceptions API documentation</title>
 <meta name="description" content="" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
@@ -19,168 +19,30 @@
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>torpido.analytics</code></h1>
+<h1 class="title">Module <code>torpido.exceptions</code></h1>
 </header>
 <section id="section-intro">
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">from matplotlib import pyplot as plt
-
-from torpido.util.timestamp import readTheRankings, getTimestamps
-
-
-class Analytics:
-    def __init__(self):
-        self.__motion, self.__blur, self.__text, self.__audio = None, None, None, None
-        self.__rankLength = None
-        self.__ranks = None
-
-    def analyze(self):
-        self.__motion, self.__blur, self.__text, self.__audio = readTheRankings()
-        self.__rankLength = len(self.__motion)
-
-        self.__ranks = [self.__motion[i] + self.__blur[i] +
-                        self.__text[i] + self.__audio[i] for i in range(self.__rankLength)]
-
-        self.__plotRankLine()
-        self.__plotSumLine()
-
-    def __plotRankLine(self):
-        numbers = [i for i in range(self.__rankLength)]
-        fig = plt.figure()
-
-        ax = fig.add_subplot(411)
-        ax.plot(numbers, self.__motion, label=&#34;Motion&#34;, color=&#39;r&#39;)
-        plt.legend(loc=2)
-
-        ax = fig.add_subplot(412)
-        ax.plot(numbers, self.__blur, label=&#34;Blur&#34;, color=&#39;g&#39;)
-        plt.legend(loc=2)
-
-        ax = fig.add_subplot(413)
-        ax.plot(numbers, self.__audio, label=&#34;Audio&#34;, color=&#39;c&#39;)
-        plt.legend(loc=2)
-
-        ax = fig.add_subplot(414)
-        ax.plot(numbers, self.__text, label=&#34;Text&#34;, color=&#39;m&#39;)
-        plt.legend(loc=2)
-
-        plt.tight_layout()
-        plt.show()
-
-    def __plotSumLine(self):
-        timestamps = getTimestamps()
-
-        for start, end, in timestamps:
-            plt.plot([start, start], [0, 10], color=&#39;red&#39;, linestyle=&#39;dashed&#39;, linewidth=2, label=&#34;start time&#34;)
-            plt.plot([end, end], [0, 10], color=&#39;green&#39;, linestyle=&#39;dashed&#39;, linewidth=2, label=&#34;end time&#34;)
-
-        plt.plot([i for i in range(self.__rankLength)], self.__ranks)
-        plt.legend(loc=2)
-        plt.title(&#34;Final summation of all ranks&#34;)
-        plt.xlabel(&#34;Video duration (sec)&#34;)
-        plt.ylabel(&#34;Summation of all rankings&#34;)
-        plt.show()</code></pre>
+<pre><code class="python">from torpido.exceptions.custom import *</code></pre>
 </details>
 </section>
 <section>
-</section>
-<section>
-</section>
-<section>
-</section>
-<section>
-<h2 class="section-title" id="header-classes">Classes</h2>
+<h2 class="section-title" id="header-submodules">Sub-modules</h2>
 <dl>
-<dt id="torpido.analytics.Analytics"><code class="flex name class">
-<span>class <span class="ident">Analytics</span></span>
-</code></dt>
+<dt><code class="name"><a title="torpido.exceptions.custom" href="custom.html">torpido.exceptions.custom</a></code></dt>
 <dd>
-<div class="desc"></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">class Analytics:
-    def __init__(self):
-        self.__motion, self.__blur, self.__text, self.__audio = None, None, None, None
-        self.__rankLength = None
-        self.__ranks = None
-
-    def analyze(self):
-        self.__motion, self.__blur, self.__text, self.__audio = readTheRankings()
-        self.__rankLength = len(self.__motion)
-
-        self.__ranks = [self.__motion[i] + self.__blur[i] +
-                        self.__text[i] + self.__audio[i] for i in range(self.__rankLength)]
-
-        self.__plotRankLine()
-        self.__plotSumLine()
-
-    def __plotRankLine(self):
-        numbers = [i for i in range(self.__rankLength)]
-        fig = plt.figure()
-
-        ax = fig.add_subplot(411)
-        ax.plot(numbers, self.__motion, label=&#34;Motion&#34;, color=&#39;r&#39;)
-        plt.legend(loc=2)
-
-        ax = fig.add_subplot(412)
-        ax.plot(numbers, self.__blur, label=&#34;Blur&#34;, color=&#39;g&#39;)
-        plt.legend(loc=2)
-
-        ax = fig.add_subplot(413)
-        ax.plot(numbers, self.__audio, label=&#34;Audio&#34;, color=&#39;c&#39;)
-        plt.legend(loc=2)
-
-        ax = fig.add_subplot(414)
-        ax.plot(numbers, self.__text, label=&#34;Text&#34;, color=&#39;m&#39;)
-        plt.legend(loc=2)
-
-        plt.tight_layout()
-        plt.show()
-
-    def __plotSumLine(self):
-        timestamps = getTimestamps()
-
-        for start, end, in timestamps:
-            plt.plot([start, start], [0, 10], color=&#39;red&#39;, linestyle=&#39;dashed&#39;, linewidth=2, label=&#34;start time&#34;)
-            plt.plot([end, end], [0, 10], color=&#39;green&#39;, linestyle=&#39;dashed&#39;, linewidth=2, label=&#34;end time&#34;)
-
-        plt.plot([i for i in range(self.__rankLength)], self.__ranks)
-        plt.legend(loc=2)
-        plt.title(&#34;Final summation of all ranks&#34;)
-        plt.xlabel(&#34;Video duration (sec)&#34;)
-        plt.ylabel(&#34;Summation of all rankings&#34;)
-        plt.show()</code></pre>
-</details>
-<h3>Methods</h3>
-<dl>
-<dt id="torpido.analytics.Analytics.analyze"><code class="name flex">
-<span>def <span class="ident">analyze</span></span>(<span>self)</span>
-</code></dt>
-<dd>
-<div class="desc"></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def analyze(self):
-    self.__motion, self.__blur, self.__text, self.__audio = readTheRankings()
-    self.__rankLength = len(self.__motion)
-
-    self.__ranks = [self.__motion[i] + self.__blur[i] +
-                    self.__text[i] + self.__audio[i] for i in range(self.__rankLength)]
-
-    self.__plotRankLine()
-    self.__plotSumLine()</code></pre>
-</details>
+<div class="desc"><p>All custom exceptions</p></div>
 </dd>
 </dl>
-</dd>
-</dl>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
 </section>
 </article>
 <nav id="sidebar">
@@ -191,17 +53,12 @@ class Analytics:
 <ul id="index">
 <li><h3>Super-module</h3>
 <ul>
-<li><code><a title="torpido" href="index.html">torpido</a></code></li>
+<li><code><a title="torpido" href="../index.html">torpido</a></code></li>
 </ul>
 </li>
-<li><h3><a href="#header-classes">Classes</a></h3>
+<li><h3><a href="#header-submodules">Sub-modules</a></h3>
 <ul>
-<li>
-<h4><code><a title="torpido.analytics.Analytics" href="#torpido.analytics.Analytics">Analytics</a></code></h4>
-<ul class="">
-<li><code><a title="torpido.analytics.Analytics.analyze" href="#torpido.analytics.Analytics.analyze">analyze</a></code></li>
-</ul>
-</li>
+<li><code><a title="torpido.exceptions.custom" href="custom.html">torpido.exceptions.custom</a></code></li>
 </ul>
 </li>
 </ul>

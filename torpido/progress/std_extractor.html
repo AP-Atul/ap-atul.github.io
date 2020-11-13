@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.9.1" />
-<title>lib.progress.stdExtractor API documentation</title>
+<title>torpido.progress.std_extractor API documentation</title>
 <meta name="description" content="This file extracts the time and duration from the FFmpeg
 stdout logs on command execution" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
@@ -20,7 +20,7 @@ stdout logs on command execution" />
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>lib.progress.stdExtractor</code></h1>
+<h1 class="title">Module <code>torpido.progress.std_extractor</code></h1>
 </header>
 <section id="section-intro">
 <p>This file extracts the time and duration from the FFmpeg
@@ -40,22 +40,22 @@ import re
 class Time:
     &#34;&#34;&#34;
     Simple class to store time values extracted
-    datetime can be used from python lib
+    datetime can be used from python torpido
 
     Attributes
     ---------
-    hour : int
+    __hour : int
         hour in time series
-    minute : int
+    __minute : int
         minute in time series
-    second : int
+    __second : int
         second in time series
     &#34;&#34;&#34;
 
     def __init__(self):
-        self.hour = None
-        self.minute = None
-        self.second = None
+        self.__hour = None
+        self.__minute = None
+        self.__second = None
 
     def getTimeInSec(self):
         &#34;&#34;&#34;
@@ -64,17 +64,17 @@ class Time:
         Returns
         -------
         int
-            time in secs
+            __time in secs
         &#34;&#34;&#34;
-        return (self.hour * 60 * 60) + (self.minute * 60) + self.second
+        return (self.__hour * 60 * 60) + (self.__minute * 60) + self.__second
 
     def __del__(self):
         &#34;&#34;&#34;
         clean up
         &#34;&#34;&#34;
-        del self.hour
-        del self.minute
-        del self.second
+        del self.__hour
+        del self.__minute
+        del self.__second
 
 
 class StdExtractor:
@@ -84,15 +84,15 @@ class StdExtractor:
 
     Attributes
     ----------
-    duration : Time
+    __duration : Time
         Time object of original clip
-    time : Time
+    __time : Time
         Time object of current output clip
     &#34;&#34;&#34;
 
     def __init__(self):
-        self.duration = None
-        self.time = None
+        self.__duration = None
+        self.__time = None
 
     def extractTimeDuration(self, line):
         &#34;&#34;&#34;
@@ -108,9 +108,9 @@ class StdExtractor:
         tuple
             Time object of duration and time
         &#34;&#34;&#34;
-        return self.extractDuration(line), self.extractTime(line)
+        return self.__extractDuration(line), self.__extractTime(line)
 
-    def extractTime(self, line):
+    def __extractTime(self, line):
         &#34;&#34;&#34;
         Searching for time clause in the FFmpeg logs
 
@@ -123,20 +123,20 @@ class StdExtractor:
 
         Returns
         -------
-        time : Time
+        __time : Time
             Time object of output clip
         &#34;&#34;&#34;
-        exp = re.compile(r&#39;time=(\d+):(\d+):(\d+)&#39;)
+        exp = re.compile(r&#39;__time=(\d+):(\d+):(\d+)&#39;)
         exp = exp.search(line)
         if exp:
-            self.time = Time()
-            self.time.hour = int(exp.group(1))
-            self.time.minute = int(exp.group(2))
-            self.time.second = int(exp.group(3))
+            self.__time = Time()
+            self.__time.__hour = int(exp.group(1))
+            self.__time.__minute = int(exp.group(2))
+            self.__time.__second = int(exp.group(3))
 
-        return self.time
+        return self.__time
 
-    def extractDuration(self, line):
+    def __extractDuration(self, line):
         &#34;&#34;&#34;
         Searching for duration clause in FFmpeg logs
         since duration is displayed only once it is set
@@ -149,28 +149,28 @@ class StdExtractor:
 
         Returns
         -------
-        duration : Time
+        __duration : Time
             Time object of input clip
         &#34;&#34;&#34;
-        if self.duration is not None:
-            return self.duration
+        if self.__duration is not None:
+            return self.__duration
 
         exp = re.compile(r&#39;Duration: (\d{2}):(\d{2}):(\d{2})&#39;)
         exp = exp.search(line)
         if exp:
-            self.duration = Time()
-            self.duration.hour = int(exp.group(1))
-            self.duration.minute = int(exp.group(2))
-            self.duration.second = int(exp.group(3))
+            self.__duration = Time()
+            self.__duration.__hour = int(exp.group(1))
+            self.__duration.__minute = int(exp.group(2))
+            self.__duration.__second = int(exp.group(3))
 
-        return self.duration
+        return self.__duration
 
     def __del__(self):
         &#34;&#34;&#34;
         cleaning up
         &#34;&#34;&#34;
-        del self.duration
-        del self.time</code></pre>
+        del self.__duration
+        del self.__time</code></pre>
 </details>
 </section>
 <section>
@@ -182,7 +182,7 @@ class StdExtractor:
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
 <dl>
-<dt id="lib.progress.stdExtractor.StdExtractor"><code class="flex name class">
+<dt id="torpido.progress.std_extractor.StdExtractor"><code class="flex name class">
 <span>class <span class="ident">StdExtractor</span></span>
 </code></dt>
 <dd>
@@ -190,9 +190,9 @@ class StdExtractor:
 from the logs stdout</p>
 <h2 id="attributes">Attributes</h2>
 <dl>
-<dt><strong><code>duration</code></strong> :&ensp;<code><a title="lib.progress.stdExtractor.Time" href="#lib.progress.stdExtractor.Time">Time</a></code></dt>
+<dt><strong><code>__duration</code></strong> :&ensp;<code><a title="torpido.progress.std_extractor.Time" href="#torpido.progress.std_extractor.Time">Time</a></code></dt>
 <dd>Time object of original clip</dd>
-<dt><strong><code>time</code></strong> :&ensp;<code><a title="lib.progress.stdExtractor.Time" href="#lib.progress.stdExtractor.Time">Time</a></code></dt>
+<dt><strong><code>__time</code></strong> :&ensp;<code><a title="torpido.progress.std_extractor.Time" href="#torpido.progress.std_extractor.Time">Time</a></code></dt>
 <dd>Time object of current output clip</dd>
 </dl></div>
 <details class="source">
@@ -206,15 +206,15 @@ from the logs stdout</p>
 
     Attributes
     ----------
-    duration : Time
+    __duration : Time
         Time object of original clip
-    time : Time
+    __time : Time
         Time object of current output clip
     &#34;&#34;&#34;
 
     def __init__(self):
-        self.duration = None
-        self.time = None
+        self.__duration = None
+        self.__time = None
 
     def extractTimeDuration(self, line):
         &#34;&#34;&#34;
@@ -230,9 +230,9 @@ from the logs stdout</p>
         tuple
             Time object of duration and time
         &#34;&#34;&#34;
-        return self.extractDuration(line), self.extractTime(line)
+        return self.__extractDuration(line), self.__extractTime(line)
 
-    def extractTime(self, line):
+    def __extractTime(self, line):
         &#34;&#34;&#34;
         Searching for time clause in the FFmpeg logs
 
@@ -245,20 +245,20 @@ from the logs stdout</p>
 
         Returns
         -------
-        time : Time
+        __time : Time
             Time object of output clip
         &#34;&#34;&#34;
-        exp = re.compile(r&#39;time=(\d+):(\d+):(\d+)&#39;)
+        exp = re.compile(r&#39;__time=(\d+):(\d+):(\d+)&#39;)
         exp = exp.search(line)
         if exp:
-            self.time = Time()
-            self.time.hour = int(exp.group(1))
-            self.time.minute = int(exp.group(2))
-            self.time.second = int(exp.group(3))
+            self.__time = Time()
+            self.__time.__hour = int(exp.group(1))
+            self.__time.__minute = int(exp.group(2))
+            self.__time.__second = int(exp.group(3))
 
-        return self.time
+        return self.__time
 
-    def extractDuration(self, line):
+    def __extractDuration(self, line):
         &#34;&#34;&#34;
         Searching for duration clause in FFmpeg logs
         since duration is displayed only once it is set
@@ -271,131 +271,32 @@ from the logs stdout</p>
 
         Returns
         -------
-        duration : Time
+        __duration : Time
             Time object of input clip
         &#34;&#34;&#34;
-        if self.duration is not None:
-            return self.duration
+        if self.__duration is not None:
+            return self.__duration
 
         exp = re.compile(r&#39;Duration: (\d{2}):(\d{2}):(\d{2})&#39;)
         exp = exp.search(line)
         if exp:
-            self.duration = Time()
-            self.duration.hour = int(exp.group(1))
-            self.duration.minute = int(exp.group(2))
-            self.duration.second = int(exp.group(3))
+            self.__duration = Time()
+            self.__duration.__hour = int(exp.group(1))
+            self.__duration.__minute = int(exp.group(2))
+            self.__duration.__second = int(exp.group(3))
 
-        return self.duration
+        return self.__duration
 
     def __del__(self):
         &#34;&#34;&#34;
         cleaning up
         &#34;&#34;&#34;
-        del self.duration
-        del self.time</code></pre>
+        del self.__duration
+        del self.__time</code></pre>
 </details>
 <h3>Methods</h3>
 <dl>
-<dt id="lib.progress.stdExtractor.StdExtractor.extractDuration"><code class="name flex">
-<span>def <span class="ident">extractDuration</span></span>(<span>self, line)</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Searching for duration clause in FFmpeg logs
-since duration is displayed only once it is set
-only once and later returned the same value</p>
-<h2 id="parameters">Parameters</h2>
-<dl>
-<dt><strong><code>line</code></strong> :&ensp;<code>str</code></dt>
-<dd>output from the subprocess logs</dd>
-</dl>
-<h2 id="returns">Returns</h2>
-<dl>
-<dt><strong><code>duration</code></strong> :&ensp;<code><a title="lib.progress.stdExtractor.Time" href="#lib.progress.stdExtractor.Time">Time</a></code></dt>
-<dd>Time object of input clip</dd>
-</dl></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def extractDuration(self, line):
-    &#34;&#34;&#34;
-    Searching for duration clause in FFmpeg logs
-    since duration is displayed only once it is set
-    only once and later returned the same value
-
-    Parameters
-    ----------
-    line : str
-        output from the subprocess logs
-
-    Returns
-    -------
-    duration : Time
-        Time object of input clip
-    &#34;&#34;&#34;
-    if self.duration is not None:
-        return self.duration
-
-    exp = re.compile(r&#39;Duration: (\d{2}):(\d{2}):(\d{2})&#39;)
-    exp = exp.search(line)
-    if exp:
-        self.duration = Time()
-        self.duration.hour = int(exp.group(1))
-        self.duration.minute = int(exp.group(2))
-        self.duration.second = int(exp.group(3))
-
-    return self.duration</code></pre>
-</details>
-</dd>
-<dt id="lib.progress.stdExtractor.StdExtractor.extractTime"><code class="name flex">
-<span>def <span class="ident">extractTime</span></span>(<span>self, line)</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Searching for time clause in the FFmpeg logs</p>
-<pre><code>Ex: time=00:01:13.22
-</code></pre>
-<h2 id="parameters">Parameters</h2>
-<dl>
-<dt><strong><code>line</code></strong> :&ensp;<code>str</code></dt>
-<dd>output from the subprocess logs</dd>
-</dl>
-<h2 id="returns">Returns</h2>
-<dl>
-<dt><strong><code>time</code></strong> :&ensp;<code><a title="lib.progress.stdExtractor.Time" href="#lib.progress.stdExtractor.Time">Time</a></code></dt>
-<dd>Time object of output clip</dd>
-</dl></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def extractTime(self, line):
-    &#34;&#34;&#34;
-    Searching for time clause in the FFmpeg logs
-
-        Ex: time=00:01:13.22
-
-    Parameters
-    ----------
-    line : str
-        output from the subprocess logs
-
-    Returns
-    -------
-    time : Time
-        Time object of output clip
-    &#34;&#34;&#34;
-    exp = re.compile(r&#39;time=(\d+):(\d+):(\d+)&#39;)
-    exp = exp.search(line)
-    if exp:
-        self.time = Time()
-        self.time.hour = int(exp.group(1))
-        self.time.minute = int(exp.group(2))
-        self.time.second = int(exp.group(3))
-
-    return self.time</code></pre>
-</details>
-</dd>
-<dt id="lib.progress.stdExtractor.StdExtractor.extractTimeDuration"><code class="name flex">
+<dt id="torpido.progress.std_extractor.StdExtractor.extractTimeDuration"><code class="name flex">
 <span>def <span class="ident">extractTimeDuration</span></span>(<span>self, line)</span>
 </code></dt>
 <dd>
@@ -428,24 +329,24 @@ only once and later returned the same value</p>
     tuple
         Time object of duration and time
     &#34;&#34;&#34;
-    return self.extractDuration(line), self.extractTime(line)</code></pre>
+    return self.__extractDuration(line), self.__extractTime(line)</code></pre>
 </details>
 </dd>
 </dl>
 </dd>
-<dt id="lib.progress.stdExtractor.Time"><code class="flex name class">
+<dt id="torpido.progress.std_extractor.Time"><code class="flex name class">
 <span>class <span class="ident">Time</span></span>
 </code></dt>
 <dd>
 <div class="desc"><p>Simple class to store time values extracted
-datetime can be used from python lib</p>
+datetime can be used from python torpido</p>
 <h2 id="attributes">Attributes</h2>
 <dl>
-<dt><strong><code>hour</code></strong> :&ensp;<code>int</code></dt>
+<dt><strong><code>__hour</code></strong> :&ensp;<code>int</code></dt>
 <dd>hour in time series</dd>
-<dt><strong><code>minute</code></strong> :&ensp;<code>int</code></dt>
+<dt><strong><code>__minute</code></strong> :&ensp;<code>int</code></dt>
 <dd>minute in time series</dd>
-<dt><strong><code>second</code></strong> :&ensp;<code>int</code></dt>
+<dt><strong><code>__second</code></strong> :&ensp;<code>int</code></dt>
 <dd>second in time series</dd>
 </dl></div>
 <details class="source">
@@ -455,22 +356,22 @@ datetime can be used from python lib</p>
 <pre><code class="python">class Time:
     &#34;&#34;&#34;
     Simple class to store time values extracted
-    datetime can be used from python lib
+    datetime can be used from python torpido
 
     Attributes
     ---------
-    hour : int
+    __hour : int
         hour in time series
-    minute : int
+    __minute : int
         minute in time series
-    second : int
+    __second : int
         second in time series
     &#34;&#34;&#34;
 
     def __init__(self):
-        self.hour = None
-        self.minute = None
-        self.second = None
+        self.__hour = None
+        self.__minute = None
+        self.__second = None
 
     def getTimeInSec(self):
         &#34;&#34;&#34;
@@ -479,21 +380,21 @@ datetime can be used from python lib</p>
         Returns
         -------
         int
-            time in secs
+            __time in secs
         &#34;&#34;&#34;
-        return (self.hour * 60 * 60) + (self.minute * 60) + self.second
+        return (self.__hour * 60 * 60) + (self.__minute * 60) + self.__second
 
     def __del__(self):
         &#34;&#34;&#34;
         clean up
         &#34;&#34;&#34;
-        del self.hour
-        del self.minute
-        del self.second</code></pre>
+        del self.__hour
+        del self.__minute
+        del self.__second</code></pre>
 </details>
 <h3>Methods</h3>
 <dl>
-<dt id="lib.progress.stdExtractor.Time.getTimeInSec"><code class="name flex">
+<dt id="torpido.progress.std_extractor.Time.getTimeInSec"><code class="name flex">
 <span>def <span class="ident">getTimeInSec</span></span>(<span>self)</span>
 </code></dt>
 <dd>
@@ -501,7 +402,7 @@ datetime can be used from python lib</p>
 <h2 id="returns">Returns</h2>
 <dl>
 <dt><code>int</code></dt>
-<dd>time in secs</dd>
+<dd>__time in secs</dd>
 </dl></div>
 <details class="source">
 <summary>
@@ -514,9 +415,9 @@ datetime can be used from python lib</p>
     Returns
     -------
     int
-        time in secs
+        __time in secs
     &#34;&#34;&#34;
-    return (self.hour * 60 * 60) + (self.minute * 60) + self.second</code></pre>
+    return (self.__hour * 60 * 60) + (self.__minute * 60) + self.__second</code></pre>
 </details>
 </dd>
 </dl>
@@ -532,23 +433,21 @@ datetime can be used from python lib</p>
 <ul id="index">
 <li><h3>Super-module</h3>
 <ul>
-<li><code><a title="lib.progress" href="index.html">lib.progress</a></code></li>
+<li><code><a title="torpido.progress" href="index.html">torpido.progress</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-classes">Classes</a></h3>
 <ul>
 <li>
-<h4><code><a title="lib.progress.stdExtractor.StdExtractor" href="#lib.progress.stdExtractor.StdExtractor">StdExtractor</a></code></h4>
+<h4><code><a title="torpido.progress.std_extractor.StdExtractor" href="#torpido.progress.std_extractor.StdExtractor">StdExtractor</a></code></h4>
 <ul class="">
-<li><code><a title="lib.progress.stdExtractor.StdExtractor.extractDuration" href="#lib.progress.stdExtractor.StdExtractor.extractDuration">extractDuration</a></code></li>
-<li><code><a title="lib.progress.stdExtractor.StdExtractor.extractTime" href="#lib.progress.stdExtractor.StdExtractor.extractTime">extractTime</a></code></li>
-<li><code><a title="lib.progress.stdExtractor.StdExtractor.extractTimeDuration" href="#lib.progress.stdExtractor.StdExtractor.extractTimeDuration">extractTimeDuration</a></code></li>
+<li><code><a title="torpido.progress.std_extractor.StdExtractor.extractTimeDuration" href="#torpido.progress.std_extractor.StdExtractor.extractTimeDuration">extractTimeDuration</a></code></li>
 </ul>
 </li>
 <li>
-<h4><code><a title="lib.progress.stdExtractor.Time" href="#lib.progress.stdExtractor.Time">Time</a></code></h4>
+<h4><code><a title="torpido.progress.std_extractor.Time" href="#torpido.progress.std_extractor.Time">Time</a></code></h4>
 <ul class="">
-<li><code><a title="lib.progress.stdExtractor.Time.getTimeInSec" href="#lib.progress.stdExtractor.Time.getTimeInSec">getTimeInSec</a></code></li>
+<li><code><a title="torpido.progress.std_extractor.Time.getTimeInSec" href="#torpido.progress.std_extractor.Time.getTimeInSec">getTimeInSec</a></code></li>
 </ul>
 </li>
 </ul>
