@@ -10,13 +10,15 @@ body {
 }
 
 .hero-text {
+  position: fixed; 
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+
   color: white;
-  text-align: center;
-  vertical-align: middle;
   font-weight: bolder;
   font-size: xx-large;
-  line-height: 80vh;
-
+  text-align: center;
   text-shadow: 0 0 10px #fff, 0 0 70px #fff, 0 0 30px #029cda, 0 0 40px #029cda,
     0 0 50px #029cda, 0 0 60px #029cda, 0 0 70px #029cda;
 }
@@ -24,7 +26,9 @@ body {
 .pointer {
   height: 20px;
   width: 20px;
-  position: absolute;
+  position: fixed;
+  top: 30px;
+  left: 20px;
   transform: scale(1, 2) rotate(45deg);
 
   box-shadow: 0 0 10px #fff, 0 0 70px #fff, 0 0 30px #029cda, 0 0 40px #029cda,
